@@ -18,10 +18,10 @@ Under Construction
 ## Project Members
 
 - **[Zachary Bricknell](https://github.com/Zachary-Bricknell)**: PM
-- **[Luka](https://github.com/luka)**: 
-- **[Kelly](https://github.com/kelly)**: 
-- **[Mohammed](https://github.com/Mohammed)**: 
-- **[Frederick](https://github.com/Frederick)**: 
+- **[Luka](https://github.com/luka)**: SWE
+- **[Kelly](https://github.com/kelly)**: SWE
+- **[Mohammed](https://github.com/Mohammed)**: SWE
+- **[Frederick](https://github.com/Frederick)**: SWE
 
 ```bash
 git clone https://github.com/Zachary-Bricknell/Project_Pinecone.git
