@@ -43,7 +43,7 @@ pause
 ## Project Members
 
 - **[Zachary Bricknell](https://github.com/Zachary-Bricknell)**: PM
-- **[Luka](https://github.com/lukanikolaisvil)**: SWE
+- **[Luka](https://github.com/lukanikolaisvili)**: SWE
 - **[Kelly](https://github.com/kelly)**: SWE
 - **[Mohammed](https://github.com/Mohammed)**: SWE
 - **[Frederick](https://github.com/Frederick)**: SWE
