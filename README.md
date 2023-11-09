@@ -17,7 +17,7 @@ Under Construction
 
 ## Build Script
 
-- Remove items denoted with square backets 
+- Replace items denoted with square backets 
 
 ```bash
 @echo off
