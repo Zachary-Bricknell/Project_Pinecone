@@ -1,12 +1,16 @@
 #Large Libraries
 /external
 
-# Personal files
+#dev enviornment files
 /venv.bat
+/build_script.bat
 /pinecone_venv
 
 #IDE
 /.vs
+
+#build directories
+./build
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

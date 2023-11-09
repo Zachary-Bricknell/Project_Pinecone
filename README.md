@@ -15,6 +15,31 @@ eliminate the need for destructive sampling and have on-demand access to up-to-d
 ## Installation
 Under Construction
 
+## Build Script
+
+- Remove items denoted with square backets 
+
+```bash
+@echo off
+
+rem Set the path to your venv
+set VENV_PATH=[Path to VENV]
+
+rem Activate the virtual environment.
+call "%VENV_PATH%"
+
+rem Run pyinstaller with the activated virtual environment.
+pyinstaller --onefile --windowed --icon=.\resources\icons\temp_icon.ico [Path to project_pinecone.py
+
+rem Pause to see if pyinstaller runs successfully.
+pause
+
+exit /b
+
+pause
+
+```
+
 ## Project Members
 
 - **[Zachary Bricknell](https://github.com/Zachary-Bricknell)**: PM
@@ -23,8 +48,4 @@ Under Construction
 - **[Mohammed](https://github.com/Mohammed)**: SWE
 - **[Frederick](https://github.com/Frederick)**: SWE
 
-```bash
-git clone https://github.com/Zachary-Bricknell/Project_Pinecone.git
-cd project-pinecone
-pip install -r requirements.txt
 
