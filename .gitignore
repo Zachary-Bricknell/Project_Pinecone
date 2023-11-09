@@ -1,8 +1,12 @@
 #Large Libraries
-Open3D/
+/external
 
 # Personal files
 /venv.bat
+/pinecone_venv
+
+#IDE
+/.vs
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
