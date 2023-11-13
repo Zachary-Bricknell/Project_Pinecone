@@ -1,10 +1,8 @@
-import Uploader from './components/Uploader/uploader'
-import './App.css'
+import Uploader from "./components/Uploader/uploader";
+import "./App.css";
 
 function App() {
-  return (
-      <Uploader></Uploader>
-  )
+  return <Uploader> </Uploader>;
 }
 
-export default App
+export default App;
