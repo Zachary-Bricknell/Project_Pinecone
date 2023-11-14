@@ -14,7 +14,11 @@
   -webkit-text-size-adjust: 100%;
 }
 
-
+button
+{
+  margin: 3em;
+  padding: .5em;
+}
 
 main div .wrapper1 , main div .wrapper2
 {
