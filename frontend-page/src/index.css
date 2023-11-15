@@ -14,17 +14,39 @@
   -webkit-text-size-adjust: 100%;
 }
 
-button
+header
 {
-  margin: 3em;
-  padding: .5em;
+  color:blue;
+  display: flex;
+  font-size: 3em;
+  margin-bottom: 0.3em;
+  margin-left: 0.5em;
+}
+
+.uploaded-file {
+  display: flex;
+  align-items:flex-start;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  margin-bottom: 8px; /* Space between each uploaded file */
+}
+
+/* Style the file icon */
+.uploaded-file > svg {
+  margin-right: 10px; /* Space between icon and file name */
+}
+
+/* Style the check mark icon */
+.uploaded-file > svg:last-child {
+  margin-left: 1em; /* Push the check mark to the far right */
 }
 
 main div .wrapper1 , main div .wrapper2
 {
 background-color: white;
 padding: 1em;
-border-radius: 0.5em;
+border-radius: 0.6em;
 }
 
 body div main div {

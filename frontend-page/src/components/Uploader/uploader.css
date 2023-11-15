@@ -11,11 +11,26 @@ form{
 }
 section{
     display: flex;
-    flex-direction: column; justify-content: center;
+    flex-direction: column; 
+    justify-content: center;
     align-items: center;
-    border: 2px dashed #1475cf;
+    flex-grow: 1;
+    /* border: 2px dashed #1475cf; */
     height: 300px;
     width: 500px;
     cursor: pointer;
     border-radius: 5px;
 }
+
+.wrapper2 {
+    height: 300px;    /* Set a fixed height for the container */
+    overflow-y:auto; /* Enable scrolling */
+  }
+  ::-webkit-scrollbar {
+    display: none; /* Hide scrollbar  */
+  }
+  .file-section {
+    margin: 1em;
+  }
+  
+  
