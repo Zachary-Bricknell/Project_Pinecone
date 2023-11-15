@@ -1,6 +1,8 @@
 import open3d as o3d
 import open3d.visualization.gui as gui
 import open3d.visualization.rendering as rendering
+import numpy as np
+import matplotlib.pyplot as plt
 
 class PointCloudApp:
     def __init__(self, width, height):
@@ -8,7 +10,7 @@ class PointCloudApp:
         self.app.initialize()
 
         # Create a window and set its size
-        self.window = gui.Application.instance.create_window("PointCloudApp", width, height)
+        self.window = gui.Application.instance.create_window("Project_Pinecone", width, height)
 
         # Create a widget to add to the window
         self.widget3d = gui.SceneWidget()
@@ -42,6 +44,8 @@ class PointCloudApp:
             self.widget3d.frame = gui.Rect(r.x, r.y, r.get_right() - 20 * em, r.height)
 
         self.window.set_on_layout(on_layout)
+        
+        self.widget3d.scene.set_background([0, 0, 0, 1])
 
     def on_open_button_clicked(self):
         # This is where you would add the file dialog and loading logic
@@ -55,14 +59,36 @@ class PointCloudApp:
 
     def on_file_dialog_done(self, path):
         self.window.close_dialog()
-        # Load the point cloud and add it to the scene
-        point_cloud = o3d.io.read_point_cloud(path)
-        # Adjust scaling of the points (1 is original size, Default is greater)
-        material = rendering.MaterialRecord()
-        material.point_size = 1.0  # Set the point size to 1
-        #Apply the pointcould to the scene
-        self.widget3d.scene.add_geometry("Tree Point Cloud", point_cloud, rendering.MaterialRecord())
-        self.widget3d.setup_camera(60, point_cloud.get_axis_aligned_bounding_box(), point_cloud.get_center())
+        try:
+            # Load the point cloud and add it to the scene
+            point_cloud = o3d.io.read_point_cloud(path)
+            if point_cloud.is_empty():
+                print("The point cloud has no points.")
+                return
+
+            # Compute the colors based on the Z coordinates using Open3D's color map
+            points = np.asarray(point_cloud.points)
+            z = points[:, 2]  # Assumes Z is the vertical dimension
+            z_normalized = (z - np.min(z)) / (np.max(z) - np.min(z))
+            colors = plt.get_cmap("Greens")(z_normalized)[:, :3]  # Use matplotlib's colormap
+
+            point_cloud.colors = o3d.utility.Vector3dVector(colors)
+
+            # Adjust scaling of the points (1 is original size, Default is greater)
+            material = rendering.MaterialRecord()
+            material.point_size = 1.0  # Set the point size to 1
+            # Apply the point cloud to the scene
+            self.widget3d.scene.add_geometry("Tree Point Cloud", point_cloud, material)
+            self.widget3d.setup_camera(60, point_cloud.get_axis_aligned_bounding_box(), point_cloud.get_center())
+        except Exception as e:
+            print(f"Failed to load the point cloud: {e}")
+
+
+
+
+
+
+
 
     def run(self):
         self.app.run()
