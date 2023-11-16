@@ -73,6 +73,17 @@ class PointCloudApp:
             colors = plt.get_cmap("Greens")(z_normalized)[:, :3]  # Use matplotlib's colormap
 
             point_cloud.colors = o3d.utility.Vector3dVector(colors)
+            
+            ##Preprocessing
+            _, ind = point_cloud.remove_statistical_outlier(nb_neighbors=20, std_ratio=2.0)
+            point_cloud = point_cloud.select_by_index(ind)
+
+            # Apply voxel downsampling
+            print("Applying voxel downsampling...")
+            voxel_size = 0.02
+            point_cloud = point_cloud.voxel_down_sample(voxel_size=voxel_size)
+            
+            ##Preprocessing End
 
             # Adjust scaling of the points (1 is original size, Default is greater)
             material = rendering.MaterialRecord()
