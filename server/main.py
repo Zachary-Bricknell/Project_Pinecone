@@ -28,12 +28,12 @@ class PointCloudApp:
         # Create a vertical layout
         vert = gui.Vert(0, gui.Margins(em, em, em, em))
 
-        # Create an Open File button
+        # Create an Open File button(May be removed as per new UI requirements)
         open_button = gui.Button("Open File")
         open_button.set_on_clicked(self.on_open_button_clicked)
         vert.add_child(open_button)
 
-        # Add the 3D widget and the vertical layout to the window
+        # Add the 3D widget and the vertical layout to the window (Menu box)
         self.window.add_child(self.widget3d)
         self.window.add_child(vert)
 
@@ -48,7 +48,7 @@ class PointCloudApp:
         self.widget3d.scene.set_background([0, 0, 0, 1])
 
     def on_open_button_clicked(self):
-        # This is where you would add the file dialog and loading logic
+        # Open File Logic (May be removed later based on new UI requirements)
         dlg = gui.FileDialog(gui.FileDialog.OPEN, "Choose file to load", self.window.theme)
         dlg.set_on_cancel(self.on_file_dialog_cancel)
         dlg.set_on_done(self.on_file_dialog_done)
@@ -75,32 +75,27 @@ class PointCloudApp:
             point_cloud.colors = o3d.utility.Vector3dVector(colors)
             
             ##Preprocessing
+
+            #Statistical Outliers
             _, ind = point_cloud.remove_statistical_outlier(nb_neighbors=20, std_ratio=2.0)
             point_cloud = point_cloud.select_by_index(ind)
 
-            # Apply voxel downsampling
-            print("Applying voxel downsampling...")
-            voxel_size = 0.02
+            # Voxel downsampling
+            voxel_size = 0.02 #Size of the voxels
             point_cloud = point_cloud.voxel_down_sample(voxel_size=voxel_size)
             
             ##Preprocessing End
 
-            # Adjust scaling of the points (1 is original size, Default is greater)
+            # Adjust scaling of the points (1 for regular)
             material = rendering.MaterialRecord()
-            material.point_size = 1.0  # Set the point size to 1
+            material.point_size = 1.0 
+            
             # Apply the point cloud to the scene
             self.widget3d.scene.add_geometry("Tree Point Cloud", point_cloud, material)
             self.widget3d.setup_camera(60, point_cloud.get_axis_aligned_bounding_box(), point_cloud.get_center())
         except Exception as e:
             print(f"Failed to load the point cloud: {e}")
-
-
-
-
-
-
-
-
+            
     def run(self):
         self.app.run()
 
