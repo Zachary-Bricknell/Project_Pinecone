@@ -76,13 +76,26 @@ class PointCloudApp:
             
             ##Preprocessing
 
-            #Statistical Outliers
-            _, ind = point_cloud.remove_statistical_outlier(nb_neighbors=20, std_ratio=2.0)
-            point_cloud = point_cloud.select_by_index(ind)
+            try:
+                #Statistical Outliers
+                _, ind = point_cloud.remove_statistical_outlier(nb_neighbors=20, std_ratio=5.0)
+                point_cloud = point_cloud.select_by_index(ind)
+            except Exception as e:
+                print(f"Failed to remoive Statistical Outliers: {e}")
 
-            # Voxel downsampling
-            voxel_size = 0.02 #Size of the voxels
-            point_cloud = point_cloud.voxel_down_sample(voxel_size=voxel_size)
+            try:
+                #Radius Outliers
+                _, rad_ind = point_cloud.remove_radius_outlier(nb_points=15, radius=0.05)
+                point_cloud = point_cloud.select_by_index(rad_ind)
+            except Exception as e:
+                print(f"Failed to remoive Radius Outliers: {e}")
+            
+            try:
+                # Voxel downsampling
+                voxel_size = 0.02 #Size of the voxels
+                point_cloud = point_cloud.voxel_down_sample(voxel_size=voxel_size)
+            except Exception as e:
+                print(f"Failed to Voxel Downsample: {e}")
             
             ##Preprocessing End
 
