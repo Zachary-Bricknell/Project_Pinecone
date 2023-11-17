@@ -47,6 +47,11 @@ function Uploader() {
     setFiles((prevFiles) => [...prevFiles, ...Array.from(droppedFiles)]);
   };
 
+  const cleanup = () => {
+    // Add your noise canceling coding here
+    // For now, this function does nothing
+  };
+
   return (
     <main>
       <nav> </nav>
@@ -84,6 +89,9 @@ function Uploader() {
           </section>
         </div>
       </div>
+      <button className="clean-button" onClick={cleanup}>
+        Clean files
+      </button>
     </main>
   );
 }

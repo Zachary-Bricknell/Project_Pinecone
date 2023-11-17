@@ -26,15 +26,15 @@ header
 .uploaded-file {
   display: flex;
   align-items:flex-start;
-  padding: 8px;
-  border: 1px solid #ccc;
-  border-radius: 5px;
-  margin-bottom: 8px; /* Space between each uploaded file */
+  padding: 0.4em;
+  border: 0.25em solid #ccc;
+  border-radius: 0.5em;
+  margin-bottom: 1.5em; /* Space between each uploaded file */
 }
 
 /* Style the file icon */
 .uploaded-file > svg {
-  margin-right: 10px; /* Space between icon and file name */
+  margin-right: 1em; /* Space between icon and file name */
 }
 
 /* Style the check mark icon */
@@ -56,16 +56,25 @@ body div main div {
   justify-content: space-evenly;
 
 }
+.clean-button {
+  margin-top: 2em; 
+  margin-left: 51em;
+  align-self: center;
+  padding: 0.6em 0.6em;
+  border: none;
+  border-radius: 4px;
+  background-color: black;
+  color: white;
+  font-size: 1em;
+
+ 
+}
 
 body
 {
   background-color: #6990f2;
   min-height: 100vh;
 }
-
-
-
-
 
 @media (prefers-color-scheme: light) {
   :root {
@@ -75,7 +84,5 @@ body
   a:hover {
     color: #747bff;
   }
-  button {
-    background-color: #f9f9f9;
-  }
+  
 }
