@@ -4,30 +4,6 @@ import laspy
 import numpy as np
 import open3d as o3d
 
-# Serialize the Point Cloud file without compressing to "save state" as needed
-def serialize_pc(data_dict):
-    return bson.BSON.encode(data_dict)
-
-# Compress the file
-def compress_bson(bson_data, output_path):
-    with gzip.open(output_path, "wb") as pc:
-        pc.write(bson_data)
-
-# Decompress and Deseialize as both operations are generall performed together to read
-def decompress_bson(file_path):
-    with gzip.open(file_path, 'rb') as file:
-        bson_data = file.read()
-    data_dict = bson.loads(bson_data)
-    
-    # Extract points and convert them to a numpy array
-    points_array = np.asarray(data_dict['points'])
-    
-    # Create a new point cloud with the extracted points
-    point_cloud = o3d.geometry.PointCloud()
-    point_cloud.points = o3d.utility.Vector3dVector(points_array)
-
-    return point_cloud
-
 # Read the original pointcloud and ensure its a supported extension. Return a open3d object. 
 def read_point_cloud(path):
     try:

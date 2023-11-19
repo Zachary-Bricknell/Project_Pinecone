@@ -1,3 +1,4 @@
+import os
 import open3d as o3d
 import open3d.visualization.gui as gui
 import open3d.visualization.rendering as rendering
@@ -77,34 +78,54 @@ class PointCloudApp:
 
             point_cloud.colors = o3d.utility.Vector3dVector(colors)
             
-            ##Preprocessing
+            # Get the filename without extension
+            point_cloud_ex = os.path.basename(path)
+            current_directory = os.path.dirname(path)
 
-            try:
-                #Statistical Outliers
-                _, ind = point_cloud.remove_statistical_outlier(nb_neighbors=15, std_ratio=1.0)
-                point_cloud = point_cloud.select_by_index(ind)
-            except Exception as e:
-                print(f"Failed to remoive Statistical Outliers: {e}")
+            # Check if current directory is 'processed' simply skip the processing
+            if os.path.basename(current_directory) == "processed":
+                print("Visualization only when in the \"Processed\" directory.")
+                return
+
+            # Create/use a 'processed' directory in the current directory
+            processed_directory = os.path.join(current_directory, "processed")
+            if not os.path.exists(processed_directory):
+                os.makedirs(processed_directory)
+
+            # Process only if the file has not been processed, denoted by the preface text.
+            if not point_cloud_ex.startswith('pineconed_'):
+
+                # Save the processed file in the 'processed' directory with the identifier
+                processed_file_path = os.path.join(processed_directory, 'pineconed_' + point_cloud_ex)
+                o3d.io.write_point_cloud(processed_file_path, point_cloud)
+
+                try:
+                    #Statistical Outliers (Testing Complete)
+                    _, ind = point_cloud.remove_statistical_outlier(nb_neighbors=15, std_ratio=1.0)
+                    point_cloud = point_cloud.select_by_index(ind)
+                except Exception as e:
+                    print(f"Failed to remoive Statistical Outliers: {e}")
                 
                 
-            try:
-                #Radius Outliers
-                _, rad_ind = point_cloud.remove_radius_outlier(nb_points=15, radius=0.05)
-                point_cloud = point_cloud.select_by_index(rad_ind)
-            except Exception as e:
-                print(f"Failed to remoive Radius Outliers: {e}")
+                try:
+                    #Radius Outliers 
+                    _, rad_ind = point_cloud.remove_radius_outlier(nb_points=15, radius=0.05)
+                    point_cloud = point_cloud.select_by_index(rad_ind)
+                except Exception as e:
+                    print(f"Failed to remoive Radius Outliers: {e}")
             
 
-            try:
-                # Voxel downsampling
-                voxel_size = 0.02 #Size of the voxels
-                point_cloud = point_cloud.voxel_down_sample(voxel_size=voxel_size)
-            except Exception as e:
-                print(f"Failed to Voxel Downsample: {e}")
+                try:
+                    # Voxel downsampling
+                    voxel_size = 0.02 #Size of the voxels 
+                    point_cloud = point_cloud.voxel_down_sample(voxel_size=voxel_size)
+                except Exception as e:
+                    print(f"Failed to Voxel Downsample: {e}")           
+                
+                processed_file_path = os.path.join(os.path.dirname(path), 'pineconed_' + point_cloud_ex)
+                o3d.io.write_point_cloud(processed_file_path, point_cloud)
             
-            ##Preprocessing End
-
-            
+            ## Preprocessing End
 
             # Adjust scaling of the points (1 for regular)
             material = rendering.MaterialRecord()
