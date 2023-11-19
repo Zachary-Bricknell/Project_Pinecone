@@ -3,6 +3,7 @@ import open3d.visualization.gui as gui
 import open3d.visualization.rendering as rendering
 import numpy as np
 import matplotlib.pyplot as plt
+from utils.file_operations import read_point_cloud, serialize_pc, compress_bson
 
 class PointCloudApp:
     def __init__(self, width, height):
@@ -60,10 +61,12 @@ class PointCloudApp:
     def on_file_dialog_done(self, path):
         self.window.close_dialog()
         try:
-            # Load the point cloud and add it to the scene
-            point_cloud = o3d.io.read_point_cloud(path)
-            if point_cloud.is_empty():
-                print("The point cloud has no points.")
+            
+            # Load the point cloud using the custom read operation
+            point_cloud = read_point_cloud(path)
+
+            if point_cloud is None:
+                print("Failed to read point cloud.")
                 return
 
             # Compute the colors based on the Z coordinates using Open3D's color map
