@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import "./uploader.css";
 import { BsFillCloudArrowDownFill } from "react-icons/bs";
-import { FaFileAlt, FaCheck } from "react-icons/fa"; // Import FaCheck icon
+import { FaFileAlt, FaCheck } from "react-icons/fa";
 
 function Uploader() {
   const [files, setFiles] = useState([]); // State to keep track of uploaded files
@@ -82,7 +82,12 @@ function Uploader() {
             {files.map((uploadedFile, index) => (
               <div className="uploaded-file" key={index}>
                 <FaFileAlt color="blue" size={24} />
-                <span>{uploadedFile.name}</span>
+                <a
+                  href={URL.createObjectURL(uploadedFile)}
+                  download={uploadedFile.name}
+                >
+                  {uploadedFile.name}
+                </a>
                 <FaCheck color="green" size={18} />
               </div>
             ))}
