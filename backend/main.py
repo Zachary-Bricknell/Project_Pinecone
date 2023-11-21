@@ -4,7 +4,7 @@ import open3d.visualization.gui as gui
 import open3d.visualization.rendering as rendering
 import numpy as np
 import matplotlib.pyplot as plt
-from utils.file_operations import read_point_cloud, serialize_pc, compress_bson
+from utils.file_operations import read_point_cloud
 
 class PointCloudApp:
     def __init__(self, width, height):
@@ -62,7 +62,11 @@ class PointCloudApp:
     def on_file_dialog_done(self, path):
         self.window.close_dialog()
         try:
-            
+            current_directory = os.path.dirname(path)
+            if os.path.basename(current_directory) == "processed":
+                print("The file is already in the processed directory. Skipping processing.")
+                return
+
             # Load the point cloud using the custom read operation
             point_cloud = read_point_cloud(path)
 
@@ -70,72 +74,67 @@ class PointCloudApp:
                 print("Failed to read point cloud.")
                 return
 
-            # Compute the colors based on the Z coordinates using Open3D's color map
-            points = np.asarray(point_cloud.points)
-            z = points[:, 2]  # Assumes Z is the vertical dimension
-            z_normalized = (z - np.min(z)) / (np.max(z) - np.min(z))
-            colors = plt.get_cmap("Greens")(z_normalized)[:, :3]  # Use matplotlib's colormap
+            # Create a new point cloud object that contains only XYZ coordinates
+            xyz_only_point_cloud = o3d.geometry.PointCloud()
+            xyz_only_point_cloud.points = point_cloud.points
 
-            point_cloud.colors = o3d.utility.Vector3dVector(colors)
-            
+            # Check if the point cloud has colors
+            if not xyz_only_point_cloud.has_colors():
+                points = np.asarray(xyz_only_point_cloud.points)
+                z = points[:, 2]
+                z_normalized = (z - np.min(z)) / (np.max(z) - np.min(z))
+                colors = plt.get_cmap("Greens")(z_normalized)[:, :3]  # Use matplotlib's colormap
+                xyz_only_point_cloud.colors = o3d.utility.Vector3dVector(colors)
+
             # Get the filename without extension
-            point_cloud_ex = os.path.basename(path)
-            current_directory = os.path.dirname(path)
+            filename_without_extension = os.path.splitext(os.path.basename(path))[0]
 
-            # Check if current directory is 'processed' simply skip the processing
-            if os.path.basename(current_directory) == "processed":
-                print("Visualization only when in the \"Processed\" directory.")
-                return
-
-            # Create/use a 'processed' directory in the current directory
-            processed_directory = os.path.join(current_directory, "processed")
-            if not os.path.exists(processed_directory):
-                os.makedirs(processed_directory)
-
-            # Process only if the file has not been processed, denoted by the preface text.
-            if not point_cloud_ex.startswith('pineconed_'):
-
+            # Process the point cloud if it's not already processed
+            if not filename_without_extension.startswith('pineconed_'):
+                # Statistical Outlier Removal
+                try:
+                    _, ind = xyz_only_point_cloud.remove_statistical_outlier(nb_neighbors=15, std_ratio=1.0)
+                    xyz_only_point_cloud = xyz_only_point_cloud.select_by_index(ind)
+                except Exception as e:
+                    print(f"Failed to remove Statistical Outliers: {e}")
+                
+                # Radius Outlier Removal
+                try:
+                    _, rad_ind = xyz_only_point_cloud.remove_radius_outlier(nb_points=15, radius=0.05)
+                    xyz_only_point_cloud = xyz_only_point_cloud.select_by_index(rad_ind)
+                except Exception as e:
+                    print(f"Failed to remove Radius Outliers: {e}")
+                
+                # Voxel Downsampling
+                try:
+                    voxel_size = 0.02 # Size of the voxels
+                    xyz_only_point_cloud = xyz_only_point_cloud.voxel_down_sample(voxel_size=voxel_size)
+                except Exception as e:
+                    print(f"Failed to Voxel Downsample: {e}")
+                
                 # Save the processed file in the 'processed' directory with the identifier
-                processed_file_path = os.path.join(processed_directory, 'pineconed_' + point_cloud_ex)
-                o3d.io.write_point_cloud(processed_file_path, point_cloud)
+                processed_directory = os.path.join(current_directory, "processed")
+                if not os.path.exists(processed_directory):
+                    os.makedirs(processed_directory)
 
-                try:
-                    #Statistical Outliers (Testing Complete)
-                    _, ind = point_cloud.remove_statistical_outlier(nb_neighbors=15, std_ratio=1.0)
-                    point_cloud = point_cloud.select_by_index(ind)
-                except Exception as e:
-                    print(f"Failed to remoive Statistical Outliers: {e}")
-                
-                
-                try:
-                    #Radius Outliers 
-                    _, rad_ind = point_cloud.remove_radius_outlier(nb_points=15, radius=0.05)
-                    point_cloud = point_cloud.select_by_index(rad_ind)
-                except Exception as e:
-                    print(f"Failed to remoive Radius Outliers: {e}")
-            
+                processed_file_path = os.path.join(processed_directory, 'pineconed_' + filename_without_extension + '.pcd')
+                o3d.io.write_point_cloud(processed_file_path, xyz_only_point_cloud)
+                print(f"Processed point cloud saved as XYZ only: {processed_file_path}")
 
-                try:
-                    # Voxel downsampling
-                    voxel_size = 0.02 #Size of the voxels 
-                    point_cloud = point_cloud.voxel_down_sample(voxel_size=voxel_size)
-                except Exception as e:
-                    print(f"Failed to Voxel Downsample: {e}")           
-                
-                processed_file_path = os.path.join(os.path.dirname(path), 'pineconed_' + point_cloud_ex)
-                o3d.io.write_point_cloud(processed_file_path, point_cloud)
-            
-            ## Preprocessing End
+            # Use xyz_only_point_cloud for visualization
+            point_cloud = xyz_only_point_cloud
 
             # Adjust scaling of the points (1 for regular)
             material = rendering.MaterialRecord()
             material.point_size = 1.0 
-            
+        
             # Apply the point cloud to the scene
             self.widget3d.scene.add_geometry("Tree Point Cloud", point_cloud, material)
             self.widget3d.setup_camera(60, point_cloud.get_axis_aligned_bounding_box(), point_cloud.get_center())
+
         except Exception as e:
             print(f"Failed to load the point cloud: {e}")
+
             
     def run(self):
         self.app.run()
