@@ -1,30 +1,36 @@
 import numpy as np
 import open3d as o3d
-import laspy
+import os
 
 def read_point_cloud(path):
     try:
         file_extension = path.split('.')[-1].lower()
-
-        # Load the point cloud file depending on the file extension
-        if file_extension in ['ply', 'las', 'laz', 'xyz']:
-            # For .laz files, use laspy to read the compressed .las file
+        if file_extension in ['xyz', 'ply', 'las', 'laz']:
+            # For '.laz' files, convert to '.las' first
             if file_extension == 'laz':
                 laz_file = laspy.read(path)
                 points = np.vstack((laz_file.x, laz_file.y, laz_file.z)).transpose()
+                point_cloud = o3d.geometry.PointCloud()
+                point_cloud.points = o3d.utility.Vector3dVector(points)
             else:
-                # For other file types, use numpy.loadtxt to read only the first three columns
-                points = np.loadtxt(path, usecols=(0, 1, 2))
+                # Directly read other supported file types
+                point_cloud = o3d.io.read_point_cloud(path)
 
-            # Create an Open3D point cloud object with the XYZ data
-            pcd = o3d.geometry.PointCloud()
-            pcd.points = o3d.utility.Vector3dVector(points)
-            return pcd
+            # Extract only XYZ coordinates
+            xyz_only = np.asarray(point_cloud.points)
+            
+            # Create a new point cloud with only XYZ
+            new_point_cloud = o3d.geometry.PointCloud()
+            new_point_cloud.points = o3d.utility.Vector3dVector(xyz_only)
 
+            # Save the new point cloud as a PLY file
+            new_file_path = os.path.splitext(path)[0] + ".ply"
+            o3d.io.write_point_cloud(new_file_path, new_point_cloud)
+
+            return new_point_cloud, new_file_path
         else:
-            # Unsupported file format
-            raise ValueError(f"Unsupported file format: {file_extension}")
-
+            print(f"Unsupported file format: {file_extension}")
+            return None, None
     except Exception as e:
-        print(f"Error reading the point cloud: {e}")
-        return None
+        print(f"Error reading and converting the point cloud: {e}")
+        return None, None

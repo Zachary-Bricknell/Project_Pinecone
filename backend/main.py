@@ -64,7 +64,7 @@ class PointCloudApp:
         try:
             print(f"Attempting to open file")
             # Load the point cloud using the custom read operation
-            point_cloud = read_point_cloud(path)
+            point_cloud, path = read_point_cloud(path)
             print(f"File opened successfully")
             if point_cloud is None:
                 print("Failed to read point cloud, no data.")
@@ -95,13 +95,13 @@ class PointCloudApp:
                 except Exception as e:
                     print(f"Failed to remove Statistical Outliers: {e}")
                 
-                # Radius Outlier Removal
-                try:
-                    _, rad_ind = point_cloud.remove_radius_outlier(nb_points=15, radius=0.05)
-                    point_cloud = point_cloud.select_by_index(rad_ind)
-                    print(f"Radius Outliers removed")
-                except Exception as e:
-                    print(f"Failed to remove Radius Outliers: {e}")
+                # # Radius Outlier Removal requires further testing
+                # try:
+                #     _, rad_ind = point_cloud.remove_radius_outlier(nb_points=15, radius=0.05)
+                #     point_cloud = point_cloud.select_by_index(rad_ind)
+                #     print(f"Radius Outliers removed")
+                # except Exception as e:
+                #     print(f"Failed to remove Radius Outliers: {e}")
                 
                 # Voxel Downsampling
                 try:
@@ -118,9 +118,11 @@ class PointCloudApp:
                 if not os.path.exists(processed_directory):
                     os.makedirs(processed_directory)
 
-                processed_file_path = os.path.join(processed_directory, 'pineconed_' + filename_without_extension + '.pcd')
+                processed_file_path = os.path.join(processed_directory, 'pineconed_' + filename_without_extension + '.ply')
                 o3d.io.write_point_cloud(processed_file_path, point_cloud)
                 print(f"Processed point cloud saved as: {processed_file_path}")
+                # Remove the temporary .ply file
+                os.remove(path)
 
             # Adjust scaling of the points (1 for regular)
             material = rendering.MaterialRecord()
