@@ -62,55 +62,56 @@ class PointCloudApp:
     def on_file_dialog_done(self, path):
         self.window.close_dialog()
         try:
-            current_directory = os.path.dirname(path)
-            if os.path.basename(current_directory) == "processed":
-                print("The file is already in the processed directory. Skipping processing.")
-                return
-
+            print(f"Attempting to open file")
             # Load the point cloud using the custom read operation
             point_cloud = read_point_cloud(path)
-
+            print(f"File opened successfully")
             if point_cloud is None:
-                print("Failed to read point cloud.")
+                print("Failed to read point cloud, no data.")
                 return
-
-            # Create a new point cloud object that contains only XYZ coordinates
-            xyz_only_point_cloud = o3d.geometry.PointCloud()
-            xyz_only_point_cloud.points = point_cloud.points
-
-            # Check if the point cloud has colors
-            if not xyz_only_point_cloud.has_colors():
-                points = np.asarray(xyz_only_point_cloud.points)
-                z = points[:, 2]
-                z_normalized = (z - np.min(z)) / (np.max(z) - np.min(z))
-                colors = plt.get_cmap("Greens")(z_normalized)[:, :3]  # Use matplotlib's colormap
-                xyz_only_point_cloud.colors = o3d.utility.Vector3dVector(colors)
 
             # Get the filename without extension
             filename_without_extension = os.path.splitext(os.path.basename(path))[0]
+            # Get the current directory
+            current_directory = os.path.dirname(path)
+            
+            # Check if the file has been processed
+            if filename_without_extension.startswith('pineconed_'):
+                print(f"The file starts with pineconed_. Skipping processing.")
+            
+            # Check if the directory is in the processed directory
+            elif os.path.basename(current_directory) == "processed":
+                print("The file is already in the processed directory. Skipping processing.")
+            
 
-            # Process the point cloud if it's not already processed
-            if not filename_without_extension.startswith('pineconed_'):
+            # Process the file
+            else:   
+                print(f"Processing the point cloud")
                 # Statistical Outlier Removal
                 try:
-                    _, ind = xyz_only_point_cloud.remove_statistical_outlier(nb_neighbors=15, std_ratio=1.0)
-                    xyz_only_point_cloud = xyz_only_point_cloud.select_by_index(ind)
+                    _, ind = point_cloud.remove_statistical_outlier(nb_neighbors=15, std_ratio=1.0)
+                    point_cloud = point_cloud.select_by_index(ind)
+                    print(f"Statistical Outliers removed")
                 except Exception as e:
                     print(f"Failed to remove Statistical Outliers: {e}")
                 
                 # Radius Outlier Removal
                 try:
-                    _, rad_ind = xyz_only_point_cloud.remove_radius_outlier(nb_points=15, radius=0.05)
-                    xyz_only_point_cloud = xyz_only_point_cloud.select_by_index(rad_ind)
+                    _, rad_ind = point_cloud.remove_radius_outlier(nb_points=15, radius=0.05)
+                    point_cloud = point_cloud.select_by_index(rad_ind)
+                    print(f"Radius Outliers removed")
                 except Exception as e:
                     print(f"Failed to remove Radius Outliers: {e}")
                 
                 # Voxel Downsampling
                 try:
                     voxel_size = 0.02 # Size of the voxels
-                    xyz_only_point_cloud = xyz_only_point_cloud.voxel_down_sample(voxel_size=voxel_size)
+                    point_cloud = point_cloud.voxel_down_sample(voxel_size=voxel_size)
+                    print(f"Voxel Downsampled completed")
                 except Exception as e:
                     print(f"Failed to Voxel Downsample: {e}")
+                    
+                print(f"File Processed")
                 
                 # Save the processed file in the 'processed' directory with the identifier
                 processed_directory = os.path.join(current_directory, "processed")
@@ -118,11 +119,8 @@ class PointCloudApp:
                     os.makedirs(processed_directory)
 
                 processed_file_path = os.path.join(processed_directory, 'pineconed_' + filename_without_extension + '.pcd')
-                o3d.io.write_point_cloud(processed_file_path, xyz_only_point_cloud)
-                print(f"Processed point cloud saved as XYZ only: {processed_file_path}")
-
-            # Use xyz_only_point_cloud for visualization
-            point_cloud = xyz_only_point_cloud
+                o3d.io.write_point_cloud(processed_file_path, point_cloud)
+                print(f"Processed point cloud saved as: {processed_file_path}")
 
             # Adjust scaling of the points (1 for regular)
             material = rendering.MaterialRecord()
