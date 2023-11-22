@@ -121,8 +121,6 @@ class PointCloudApp:
                 processed_file_path = os.path.join(processed_directory, 'pineconed_' + filename_without_extension + '.ply')
                 o3d.io.write_point_cloud(processed_file_path, point_cloud)
                 print(f"Processed point cloud saved as: {processed_file_path}")
-                # Remove the temporary .ply file
-                os.remove(path)
 
             # Adjust scaling of the points (1 for regular)
             material = rendering.MaterialRecord()
