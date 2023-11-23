@@ -3,6 +3,7 @@ import open3d as o3d
 import os
 import laspy
 
+# Converts the read file into a standardized format of only XYZ coordinates removing redundant information and creating a much smaller object to work with
 def read_point_cloud(path):
     try:
         file_extension = path.split('.')[-1].lower()
@@ -11,7 +12,7 @@ def read_point_cloud(path):
         # Check if the file already ends with "_xyz.ply" 
         if filename_without_extension.endswith('_xyz') and file_extension == 'ply':
             print("File is already an XYZ-only PLY file.")
-            return o3d.io.read_point_cloud(path), path
+            return o3d.io.read_point_cloud(path)
 
         if file_extension in ['xyz', 'ply', 'las', 'laz']:
             # For '.laz' files, convert to '.las' first
@@ -28,14 +29,10 @@ def read_point_cloud(path):
             xyz_only = np.asarray(point_cloud.points)
             
             # Create a new point cloud with only XYZ
-            new_point_cloud = o3d.geometry.PointCloud()
-            new_point_cloud.points = o3d.utility.Vector3dVector(xyz_only)
+            xyz_point_cloud = o3d.geometry.PointCloud()
+            xyz_point_cloud.points = o3d.utility.Vector3dVector(xyz_only)
 
-            # Save the new point cloud as a PLY file with _xyz denoting that we have extracted only XYZ points
-            new_file_path = os.path.splitext(path)[0] + "_xyz.ply"
-            o3d.io.write_point_cloud(new_file_path, new_point_cloud)
-
-            return new_point_cloud, new_file_path
+            return xyz_point_cloud
         else:
             print(f"Unsupported file format: {file_extension}")
             return None, None
