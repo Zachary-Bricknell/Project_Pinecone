@@ -1,5 +1,6 @@
 #Large Libraries
 /external
+/sample_data
 
 #dev enviornment files
 /venv.bat
