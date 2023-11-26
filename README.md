@@ -3,46 +3,34 @@
 </h1>
 
 ## Purpose
-The purpose of this project is to create a proof of concept that utilizes modern noise reduction techniques in LiDAR scans to convert a scanned tree into a tree taper model.
-Originally the only way to obtain various information such as the Diameter, Age, and Height of a tree was through destructive sampling. With this project, we aim to reduce or
-eliminate the need for destructive sampling and have on-demand access to up-to-date information at any given time. We are working closely with the MNRF to utilize this technology.
+Project Pinecone aims to utilize modern noise reduction techniques in LiDAR scans to convert scanned trees into tree taper models. Traditionally, obtaining tree measurements like Diameter, Age, and Height required destructive sampling. Our project seeks to reduce or eliminate this need, providing on-demand, up-to-date tree information. We're collaborating with the MNRF to leverage this technology.
 
 ## Features
-- **LiDAR Data Processing**: Ability to process and clean raw LiDAR scans of Red Pine Trees.
-- **Tree Taper Model Generation**: Convert cleaned LiDAR scans into tree taper models.
-- **On-Demand Tree Information**: Retrieve Diameter, Age, Height, and other relevant statistics from the generated taper.
+- **LiDAR Data Processing**: Process and clean raw LiDAR scans of Red Pine Trees.
+- **Tree Taper Model Generation**: Convert cleaned LiDAR scans into accurate tree taper models.
+- **On-Demand Tree Information**: Access Diameter, Age, Height, and other vital statistics from the generated taper models.
 
 ## Installation
-Under Construction
+Project Pinecone is a Python-based application. The base requirement is python and pip To set up the project:
 
-## Build Script
+1. Clone the repository: ```git clone https://github.com/Zachary-Bricknell/Project_Pinecone.git\```
+2. Navigate to project directory: ```cd project_pinecone```
+3. *optional:* create a virtual enviornment: ```python -m venv pinecone_venv```
+4.  Activate the Venv(if created on step 3):  windows: ``` pinecone_venv\Scripts\activate``` Linux/MacOS ```source pinecone_venv/bin/activate```
+5.  Install the dependencies: ```pip install requirements.txt```
 
-- Replace items denoted with square backets 
+Open3d may require special instructions based on python/os version. visit http://www.open3d.org/ for details.
 
-```bash
-@echo off
+## Usage
+To use Project Pinecone, ensure you are in the project's root directory with the virtual environment activated.
 
-rem Set the path to your venv
-set VENV_PATH=[Path to VENV]
-
-rem Activate the virtual environment.
-call "%VENV_PATH%"
-
-rem Run pyinstaller with the activated virtual environment.
-pyinstaller --onefile --windowed --icon=.\resources\icons\temp_icon.ico [Path to project_pinecone.py
-
-rem Pause to see if pyinstaller runs successfully.
-pause
-
-exit /b
-
-pause
-
-```
+- To visualize a LiDAR scan: python ./backend/main.py --visualize <path_to_processed_scan>
+- To process a LiDAR scan: python ./backend/main.py --process <path_to_processed_scan>
+- To process and then visualize a LiDAR scan: ./backend/main.py --process --visualize <path_to_processed_scan>
 
 ## Project Members
 
-- **[Zachary Bricknell](https://github.com/Zachary-Bricknell)**: PM
+- **[Zachary Bricknell](https://github.com/Zachary-Bricknell)**: PM/SWE
 - **[Luka](https://github.com/lukanikolaisvili)**: SWE
 - **[Kelly](https://github.com/kelly)**: SWE
 - **[Mohammed](https://github.com/Mohammed)**: SWE
