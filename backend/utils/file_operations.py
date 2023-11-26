@@ -6,6 +6,10 @@ import laspy
 # Converts the read file into a standardized format of only XYZ coordinates removing redundant information and creating a much smaller object to work with
 def read_point_cloud(path):
     try:
+<<<<<<< HEAD
+        # Get the extension of the file
+=======
+>>>>>>> main
         file_extension = path.split('.')[-1].lower()
         filename_without_extension = os.path.splitext(os.path.basename(path))[0]
 
@@ -34,8 +38,19 @@ def read_point_cloud(path):
 
             return xyz_point_cloud
         else:
+<<<<<<< HEAD
+            # Error handling for an unexpected format
+            print(f"Unsupported file format: {file_extension}")
+            return None, None
+    except Exception as e:
+        # File read error
+        print(f"Error reading and converting the point cloud: {e}")
+        return None, None
+
+=======
             print(f"Unsupported file format: {file_extension}")
             return None, None
     except Exception as e:
         print(f"Error reading and converting the point cloud: {e}")
         return None, None
+>>>>>>> main
