@@ -6,10 +6,6 @@ import laspy
 # Attempts to read the pointcloud extensions and remove any points beyond x y z. Returns a o3d object. 
 def read_point_cloud(path):
     try:
-<<<<<<< HEAD
-        # Get the extension of the file
-=======
->>>>>>> main
         file_extension = path.split('.')[-1].lower()
         filename_without_extension = os.path.splitext(os.path.basename(path))[0]
 
@@ -28,24 +24,9 @@ def read_point_cloud(path):
             return point_cloud
 
         else:
-<<<<<<< HEAD
-            # Error handling for an unexpected format
-            print(f"Unsupported file format: {file_extension}")
-            return None, None
-    except Exception as e:
-        # File read error
-        print(f"Error reading and converting the point cloud: {e}")
-        return None, None
-
-=======
             print(f"Unsupported file format: {file_extension}")
             return None
 
     except Exception as e:
         print(f"Error reading and converting the point cloud: {e}")
-<<<<<<< HEAD
         return None
-=======
-        return None, None
->>>>>>> main
->>>>>>> 13a3050bf4deec8a16364a06bf0121f58345a880

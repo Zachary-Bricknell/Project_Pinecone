@@ -2,15 +2,6 @@ import os
 import open3d as o3d
 import numpy as np
 
-<<<<<<< HEAD
-=======
-
-<<<<<<< HEAD
-# main processing code, Currently just preprocessing
-=======
-
->>>>>>> main
->>>>>>> 13a3050bf4deec8a16364a06bf0121f58345a880
 def process_point_cloud(point_cloud, nb_neighbors=15, std_ratio=1.0, radius=0.05, voxel_size=0.02):
     try:
         print("Removing Statistical Outliers.")
@@ -38,14 +29,7 @@ def process_point_cloud(point_cloud, nb_neighbors=15, std_ratio=1.0, radius=0.05
 
     return point_cloud
 
-<<<<<<< HEAD
 # Saves the file to a folder created in the PWD and prefixes the new file with "pineconed_
-=======
-<<<<<<< HEAD
-#Saving the point cloud to a directory called processed, witht he file getting the prefix `pineconed_` 
-=======
->>>>>>> main
->>>>>>> 13a3050bf4deec8a16364a06bf0121f58345a880
 def save_processed_file(directory, filename, point_cloud):
     processed_directory = os.path.join(directory, "processed")
     if not os.path.exists(processed_directory):
@@ -55,12 +39,7 @@ def save_processed_file(directory, filename, point_cloud):
     o3d.io.write_point_cloud(processed_file_path, point_cloud)
     return processed_file_path
 
-<<<<<<< HEAD
 # For opening and visualizing a point cloud only
-=======
-<<<<<<< HEAD
-# Visualize the point cloud
->>>>>>> 13a3050bf4deec8a16364a06bf0121f58345a880
 def visualize_point_cloud(path):
     point_cloud = o3d.io.read_point_cloud(path)
     if point_cloud is None:
@@ -70,10 +49,4 @@ def visualize_point_cloud(path):
     vis.create_window()
     vis.add_geometry(point_cloud)
     vis.run()
-<<<<<<< HEAD
     vis.destroy_window()
-=======
-    vis.destroy_window()
-=======
->>>>>>> main
->>>>>>> 13a3050bf4deec8a16364a06bf0121f58345a880
