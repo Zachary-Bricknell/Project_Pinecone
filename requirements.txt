@@ -1,2 +1,4 @@
+laspy==2.5.1
+numpy==1.26.2
 open3d==0.17.0
-react==4.3.0
+argparse==1.4.0
