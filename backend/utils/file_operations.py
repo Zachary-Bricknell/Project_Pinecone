@@ -1,56 +1,58 @@
-import numpy as np
 import open3d as o3d
 import os
-import laspy
 
-# Converts the read file into a standardized format of only XYZ coordinates removing redundant information and creating a much smaller object to work with
 def read_point_cloud(path):
+    """
+    Parameters:
+    path (str): The file path of the point cloud to read.
+
+    Returns:
+    open3d.geometry.PointCloud or None: An Open3D point cloud object if successful, None otherwise.
+    
+    Description:
+    Reads an XYZ point cloud from a given file path and converts it into an Open3D point cloud object.
+
+    Supported Filetypes:
+    .xyz
+    """
     try:
-<<<<<<< HEAD
-        # Get the extension of the file
-=======
->>>>>>> main
-        file_extension = path.split('.')[-1].lower()
-        filename_without_extension = os.path.splitext(os.path.basename(path))[0]
+        file_extension = os.path.splitext(path)[1].lower()
 
-        # Check if the file already ends with "_xyz.ply" 
-        if filename_without_extension.endswith('_xyz') and file_extension == 'ply':
-            print("File is already an XYZ-only PLY file.")
+        if file_extension == '.xyz':
             return o3d.io.read_point_cloud(path)
-
-        if file_extension in ['xyz', 'ply', 'las', 'laz']:
-            # For '.laz' files, convert to '.las' first
-            if file_extension == 'laz':
-                laz_file = laspy.read(path)
-                points = np.vstack((laz_file.x, laz_file.y, laz_file.z)).transpose()
-                point_cloud = o3d.geometry.PointCloud()
-                point_cloud.points = o3d.utility.Vector3dVector(points)
-            else:
-                # Other filetipes don't require additional processing
-                point_cloud = o3d.io.read_point_cloud(path)
-
-            # Extract only XYZ coordinates removing RGB and Normals if present
-            xyz_only = np.asarray(point_cloud.points)
-            
-            # Create a new point cloud with only XYZ
-            xyz_point_cloud = o3d.geometry.PointCloud()
-            xyz_point_cloud.points = o3d.utility.Vector3dVector(xyz_only)
-
-            return xyz_point_cloud
         else:
-<<<<<<< HEAD
-            # Error handling for an unexpected format
             print(f"Unsupported file format: {file_extension}")
-            return None, None
-    except Exception as e:
-        # File read error
-        print(f"Error reading and converting the point cloud: {e}")
-        return None, None
+            return None
 
-=======
-            print(f"Unsupported file format: {file_extension}")
-            return None, None
     except Exception as e:
         print(f"Error reading and converting the point cloud: {e}")
-        return None, None
->>>>>>> main
+        return None
+
+def modify_filename(filepath, step):
+    """
+    Parameters:
+    filepath (str): Original file path.
+    step (str): The preprocessing step to append (e.g., '1' for pp1).
+
+    Returns:
+    str: Modified file path with the updated preprocessing step suffix.
+    
+    Destription:
+    Modifies the filename to update the preprocessing step suffix
+    """
+    directory, filename = os.path.split(filepath)
+    name, ext = os.path.splitext(filename)
+    
+    # Find an existing preprocessing step in the filename and remove it
+    name_parts = name.split('_pp')
+    base_name = name_parts[0]
+    
+    # Append the new preprocessing step suffix to the base filename
+    new_filename = f"{base_name}_pp{step}{ext}"
+    new_filepath = os.path.join(directory, new_filename)
+
+    # If the new filepath is different from the original, remove the original file
+    if filepath != new_filepath and os.path.exists(filepath):
+        os.remove(filepath)
+
+    return new_filepath
