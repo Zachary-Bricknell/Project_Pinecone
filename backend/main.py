@@ -1,36 +1,39 @@
 import argparse
 import os
-from utils.file_operations import read_point_cloud
-from utils.point_cloud_utils import process_point_cloud, save_processed_file, visualize_point_cloud
-
+import shutil
+from utils.point_cloud_utils import process_point_cloud, visualize_point_cloud
 
 def main(args):
-    path = args.path
-    point_cloud = read_point_cloud(path)
+    original_path = args.path
+    processed_file_path = None
 
-    if point_cloud is None:
-        print("Failed to read point cloud, no data.")
-        return
-
-    filename = os.path.splitext(os.path.basename(path))[0]
-    directory = os.path.dirname(path)
-
-    # if --processed
+    # If --process is called, copy the file into the destination folder if specified, or a folder called 'pinecone'
     if args.process:
-        point_cloud = process_point_cloud(point_cloud)
-        processed_file_path = save_processed_file(directory, filename, point_cloud)
-        print(f"Processed point cloud saved as: {processed_file_path}")
-        path = processed_file_path  # Update path to processed file for visualization
-    # if --visualize
-    if args.visualize:
-        visualize_point_cloud(path)
+        destination_directory = args.destination if args.destination else os.path.join(os.path.dirname(original_path), "pinecone")
 
-# Defines what each argument will call. 
+        # Create the destination directory if it not exist
+        if not os.path.exists(destination_directory):
+            os.makedirs(destination_directory)
+
+        # Copy the file into the destination directory
+        filename = os.path.basename(original_path)
+        destination_path = os.path.join(destination_directory, filename)
+        shutil.copyfile(original_path, destination_path)
+
+        # Process the point cloud using the path to the copied file, retaining the original datas integrity. 
+        processed_file_path = process_point_cloud(destination_path)
+        print(f"Processed point cloud saved as: {processed_file_path}")
+
+    # Visualize the point cloud, prioritizing the processed file if available, checkes if --processed was called previously which produced a definition for processed_file_path
+    if args.visualize:
+        path_to_visualize = processed_file_path if processed_file_path else original_path
+        visualize_point_cloud(path_to_visualize)
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Process and/or visualize point cloud files.")
     parser.add_argument("path", help="Path to the point cloud file")
-    parser.add_argument("--process", action="store_true", help="Process the point cloud file")
-    parser.add_argument("--visualize", action="store_true", help="Visualize the point cloud file")
+    parser.add_argument("--destination", help="Destination directory for processed files", default=None)
+    parser.add_argument("--process", action="store_true", help="Process the point cloud")
+    parser.add_argument("--visualize", action="store_true", help="Visualize the point cloud")
     args = parser.parse_args()
-
     main(args)

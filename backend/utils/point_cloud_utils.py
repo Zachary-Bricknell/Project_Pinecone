@@ -1,36 +1,39 @@
 import os
 import open3d as o3d
 import numpy as np
+from utils.file_operations import modify_filename
+from utils.point_cloud_clean_data import clean_point_cloud_data
+from utils.point_cloud_preprocess import preprocess_point_cloud
 
-def process_point_cloud(point_cloud, nb_neighbors=15, std_ratio=1.0, radius=0.05, voxel_size=0.02):
-    try:
-        print("Removing Statistical Outliers.")
-        _, ind = point_cloud.remove_statistical_outlier(nb_neighbors=nb_neighbors, std_ratio=std_ratio)
-        point_cloud = point_cloud.select_by_index(ind)
-        print("Statistical Outliers removed.")
-    except Exception as e:
-        print(f"Failed to remove Statistical Outliers: {e}")
-        
-    # # Radius Outlier Removal (Still testing)
-    # try:
-    #     _, rad_ind = point_cloud.remove_radius_outlier(nb_points=nb_neighbors, radius=radius)
-    #     point_cloud = point_cloud.select_by_index(rad_ind)
-    #     print("Radius Outliers removed.")
-    # except Exception as e:
-    #     print(f"Failed to remove Radius Outliers: {e}")
+def process_point_cloud(filepath):
+    new_filepath, step_complete = clean_point_cloud_data(filepath)
+    
+    if not step_complete:
+        print(f"Data is cleaned.")
+        return
+    
+    #template and not functional yet
+    new_filepath, step_complete = preprocess_point_cloud();
+    
+    ## Step 2
 
-    # Voxel Downsampling
-    try:
-        print("Voxel Downsampling.")
-        point_cloud = point_cloud.voxel_down_sample(voxel_size=voxel_size)
-        print("Voxel Downsampling completed.")
-    except Exception as e:
-        print(f"Failed to Voxel Downsample: {e}")
+    ## Step 3
+    
+    
 
-    return point_cloud
-
-# Saves the file to a folder created in the PWD and prefixes the new file with "pineconed_
 def save_processed_file(directory, filename, point_cloud):
+    """
+    Parameters:
+    directory (str): The base directory to save the file in.
+    filename (str): The name of the file to save.
+    point_cloud (open3d.geometry.PointCloud): The point cloud to save.
+
+    Returns:
+    str: The path to the saved file.
+    
+    Description:
+    Saves the processed point cloud file in a designated 'processed' folder within the specified directory.
+    """
     processed_directory = os.path.join(directory, "processed")
     if not os.path.exists(processed_directory):
         os.makedirs(processed_directory)
@@ -39,9 +42,27 @@ def save_processed_file(directory, filename, point_cloud):
     o3d.io.write_point_cloud(processed_file_path, point_cloud)
     return processed_file_path
 
-# For opening and visualizing a point cloud only
 def visualize_point_cloud(path):
-    point_cloud = o3d.io.read_point_cloud(path)
+    """
+    Parameters:
+    path (str): The file path of the point cloud to visualize.
+
+    Returns: 
+    none
+    
+    Description:
+    Opens and visualizes a point cloud from a given file path.
+    """
+    # Adjust the path to remove the .pp suffix to be able to open regardless of what stage of preprocessing it is on. 
+    base_name, ext = os.path.splitext(path)
+    if ext.startswith('.pp'):
+        # Extract the original extension
+        original_ext = os.path.splitext(base_name)[1]
+        adjusted_path = base_name + original_ext
+    else:
+        adjusted_path = path
+
+    point_cloud = o3d.io.read_point_cloud(adjusted_path)
     if point_cloud is None:
         raise ValueError("Could not read point cloud for visualization.")
 
