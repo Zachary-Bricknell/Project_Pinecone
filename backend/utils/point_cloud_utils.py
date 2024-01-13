@@ -2,45 +2,36 @@ import os
 import open3d as o3d
 import numpy as np
 from utils.file_operations import modify_filename
-from utils.point_cloud_clean_data import clean_point_cloud_data
-from utils.point_cloud_preprocess import preprocess_point_cloud
 
-def process_point_cloud(filepath):
-    new_filepath, step_complete = clean_point_cloud_data(filepath)
-    
-    if not step_complete:
-        print(f"Data is cleaned.")
-        return
-    
-    #template and not functional yet
-    new_filepath, step_complete = preprocess_point_cloud();
-    
-    ## Step 2
+# Identification of each stage prefix. 
+STAGE_PREFIXES = {
+    'cleaning': '_cl',
+    'preprocessing': '_pp',
+    'processing': '_pr'
+}
 
-    ## Step 3
-    
-    
-
-def save_processed_file(directory, filename, point_cloud):
+def get_current_step(filepath):
     """
     Parameters:
-    directory (str): The base directory to save the file in.
-    filename (str): The name of the file to save.
-    point_cloud (open3d.geometry.PointCloud): The point cloud to save.
+    filepath (str): The file path of the point cloud.
 
     Returns:
-    str: The path to the saved file.
+    tuple: A tuple containing the stage and the step number, e.g., ('cleaning', 1).
     
     Description:
-    Saves the processed point cloud file in a designated 'processed' folder within the specified directory.
+    Determines the current stage and step from the filename prefix(I.e _cl1 means 'cleaning' step 1).
     """
-    processed_directory = os.path.join(directory, "processed")
-    if not os.path.exists(processed_directory):
-        os.makedirs(processed_directory)
+    stage = 'cleaning' #Default first stage
+    step = 0
+    for key, prefix in STAGE_PREFIXES.items():
+        if prefix in filepath:
+            stage = key
+            # Extract the step number following the prefix
+            step_index = filepath.find(prefix) + len(prefix)
+            step = int(filepath[step_index]) if step_index < len(filepath) and filepath[step_index].isdigit() else 0
+            break
 
-    processed_file_path = os.path.join(processed_directory, f'pineconed_{filename}.ply')
-    o3d.io.write_point_cloud(processed_file_path, point_cloud)
-    return processed_file_path
+    return stage, step
 
 def visualize_point_cloud(path):
     """
