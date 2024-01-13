@@ -38,7 +38,7 @@ def process_point_cloud(filepath):
             stage = 'preprocessing'
             
     if stage == 'preprocessing' and step_complete:
-        new_filepath, step_complete = preprocessing_stage(new_filepath, current_step, STAGE_PREFIXES['cleaning']) 
+        new_filepath, step_complete = preprocessing_stage(new_filepath, current_step, STAGE_PREFIXES['preprocessing']) 
 
     return new_filepath if stage and step_complete else None
     
