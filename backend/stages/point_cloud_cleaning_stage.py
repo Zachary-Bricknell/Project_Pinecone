@@ -25,7 +25,6 @@ def cleaning_stage(filepath, current_step, stage_prefix, statistical_nb_neighbor
     """
     point_cloud = o3d.io.read_point_cloud(filepath)
     done_cleaning_data = False
-    print(current_step)
     if current_step == 0:
         filepath = extract_xyz_coordinates(point_cloud, filepath, stage_prefix)
         current_step = 1
@@ -99,7 +98,7 @@ def remove_statistical_outliers(point_cloud, filepath, current_stage_prefix, nb_
         point_cloud = point_cloud.select_by_index(ind)
         new_filepath = modify_filename(filepath, current_stage_prefix, "2")  # cleaning 2
         o3d.io.write_point_cloud(new_filepath, point_cloud)
-        print(f"PointCloud after statistical outlier removal has {len(point_cloud.points)} points.")
+        print(f"Statistical outliers Removed.")
 
         return new_filepath
     
@@ -149,10 +148,10 @@ def voxel_downsample(point_cloud, filepath, current_stage_prefix, voxel_size):
     Applies voxel downsampling to a point cloud and saves.
     """
     try:
-        print("Voxel Downsampling.")
         point_cloud = point_cloud.voxel_down_sample(voxel_size=voxel_size)
         new_filepath = modify_filename(filepath, current_stage_prefix, "4")  # cleaning step 4
         o3d.io.write_point_cloud(new_filepath, point_cloud)
+        print("Voxel Downsampled the point cloud.")
         return new_filepath
     
     except Exception as e:

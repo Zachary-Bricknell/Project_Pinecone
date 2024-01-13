@@ -44,16 +44,7 @@ def visualize_point_cloud(path):
     Description:
     Opens and visualizes a point cloud from a given file path.
     """
-    # Adjust the path to remove the .pp suffix to be able to open regardless of what stage of preprocessing it is on. 
-    base_name, ext = os.path.splitext(path)
-    if ext.startswith('.pp'):
-        # Extract the original extension
-        original_ext = os.path.splitext(base_name)[1]
-        adjusted_path = base_name + original_ext
-    else:
-        adjusted_path = path
-
-    point_cloud = o3d.io.read_point_cloud(adjusted_path)
+    point_cloud = o3d.io.read_point_cloud(path)
     if point_cloud is None:
         raise ValueError("Could not read point cloud for visualization.")
 

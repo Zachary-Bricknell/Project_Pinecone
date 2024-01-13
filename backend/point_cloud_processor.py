@@ -1,6 +1,6 @@
 from utils.point_cloud_utils import get_current_step, STAGE_PREFIXES
-from utils.point_cloud_cleaning_stage import cleaning_stage
-from utils.point_cloud_preprocessing_stage import preprocessing_stage
+from stages.point_cloud_cleaning_stage import cleaning_stage
+from stages.point_cloud_preprocessing_stage import preprocessing_stage
 
 
 def process_point_cloud(filepath):
@@ -28,16 +28,17 @@ def process_point_cloud(filepath):
     """
     
     step_complete = True
-    stage, current_step = get_current_step(filepath)   
+    new_filepath = filepath
+    stage, current_step = get_current_step(filepath) 
+    
     # Raw data starts at the cleaning stage.
     if stage == 'cleaning':
-        new_filepath, step_complete = cleaning_stage(filepath, current_step, STAGE_PREFIXES['cleaning'])
+        new_filepath, step_complete = cleaning_stage(new_filepath, current_step, STAGE_PREFIXES['cleaning'])
         if step_complete:
             stage = 'preprocessing'
-
+            
     if stage == 'preprocessing' and step_complete:
-        new_filepath, step_complete = preprocessing_stage(filepath, current_step, STAGE_PREFIXES['cleaning']) 
-        
-    
+        new_filepath, step_complete = preprocessing_stage(new_filepath, current_step, STAGE_PREFIXES['cleaning']) 
+
     return new_filepath if stage and step_complete else None
     

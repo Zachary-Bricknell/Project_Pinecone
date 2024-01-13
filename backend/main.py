@@ -2,7 +2,7 @@ import argparse
 import os
 import shutil
 from utils.point_cloud_utils import visualize_point_cloud
-from utils.process_point_cloud import process_point_cloud
+from point_cloud_processor import process_point_cloud
 
 def main(args):
     original_path = args.path
