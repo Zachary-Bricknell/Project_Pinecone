@@ -48,7 +48,7 @@ class TestPointCloudFunctions(unittest.TestCase):
     def test_cleaning_stage(self):
         input_filepath = pointCloudFile
         current_step = 0
-        stage_prefix = "cl432"
+        stage_prefix = "3"
         statistical_nb_neighbors = 20
         std_ratio = 1.0
         radius_nb_neighbors = 15
