@@ -4,7 +4,7 @@ from stages.point_cloud_cleaning_stage import *
 from stages.point_cloud_preprocessing_stage import *
 
 # Reading the point cloud (XYZ format file)
-pointCloudFile = "../backend/w07-2018-tree27_cl432.xyz"
+pointCloudFile = "../var/jenkins_home/filecl4324.xyz"
 point_cloud = o3d.io.read_point_cloud(pointCloudFile)
 
 class TestPointCloudFunctions(unittest.TestCase):
