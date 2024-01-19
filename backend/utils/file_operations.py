@@ -60,6 +60,17 @@ def modify_filename(filepath, prefix, step):
     return new_filepath
 
 def setup_logging(log_name, log_path):
+    """ 
+    Parameters:
+    log_name (str): Name of the log file without the ".log" extension.
+    log_path (str): Directory path where log file will be saved.
+
+    Returns: None
+    
+    Description:
+    Set up logging configuration to save log messages to a file. uses python logging library to append
+    to log file once setup. 
+    """
     log_directory = log_path + "/logs"
     os.makedirs(log_directory, exist_ok=True)
     log_file = os.path.join(log_directory, log_name + ".log")
