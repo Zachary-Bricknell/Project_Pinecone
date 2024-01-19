@@ -5,7 +5,10 @@ from sklearn.ensemble import IsolationForest
 import time
 from stages.point_cloud_cleaning_stage import *
 
-"""
+
+
+def remove_outliers_isolation_forest(point_cloud, contamination=0.12):
+    """
 Parameters:
 <point_cloud> (open3d.geometry.PointCloud): the points that exist in the xyz file
 <contamination> (float): expected proportion of anomalies (outliers) in the data
@@ -23,8 +26,6 @@ Using the IsolationForest Algorithm to remove the outliers
 #Put it to 0.5 it might skip the points that are needed and count it as an anomalies
 # the bigger the tree has outliers number should be tuned accordingly for the best results.
 """
-
-def remove_outliers_isolation_forest(point_cloud, contamination=0.12):
     xyz = np.asarray(point_cloud.points)
     model = IsolationForest(contamination=contamination)
     model.fit(xyz)
@@ -36,7 +37,10 @@ def remove_outliers_isolation_forest(point_cloud, contamination=0.12):
 
 
 
-"""
+
+
+def keep_only_largest_cluster_DBSCAN(point_cloud, eps=0.05, min_points=10):
+    """
 Parameters:
 <point_cloud> (open3d.geometry.PointCloud): point cloud file
 <eps> (float): (epsilon) is a distance parameter that defines the maximum 
@@ -48,13 +52,11 @@ Returns:
 
 Description:
 DBSCAN Clustering
-In here I am using the numpy,bincount to count the number of the points in each cluster that exists
-Then I am using the np.argmax to find the largest from these clusters and then using this cluster saving it and removing all the other small clusters that might
-be wondering outside the tree, these ensures that the tree will be the only main cluster.
-in this function after the process of the isolation forest algorithm we are removing the left over clusters and keeping the main cluster (Tree)
+I'm utilizing numpy's bincount to count points in each cluster. 
+Then, I use np.argmax to identify the largest cluster and save it. 
+I discard smaller clusters outside the main one. This step ensures 
+the tree remains the primary cluster in the isolation forest algorithm.
 """
-
-def keep_only_largest_cluster_DBSCAN(point_cloud, eps=0.05, min_points=10):
     # Perform DBSCAN clustering
     labels = np.array(point_cloud.cluster_dbscan(eps=eps, min_points=min_points, print_progress=True))
 
@@ -67,7 +69,10 @@ def keep_only_largest_cluster_DBSCAN(point_cloud, eps=0.05, min_points=10):
 
     return point_cloud.select_by_index(largest_cluster_indices)
 
-"""
+
+
+def preprocessing_stage(filepath, current_step, stage_prefix, num_iterations=12):
+    """
 Parameters:
 filepath (str): The file path of the input point cloud.
 current_step (int): The current step in the preprocessing process.
@@ -79,14 +84,11 @@ filepath (str): The file path of the final processed point cloud.
 success (bool): True if the preprocessing is successful, False otherwise.
 
 Description:
-This function does a preprocessing stage to a point cloud, which includes iteratively 
-removing machine learning-based outliers using the Isolation Forest algorithm. 
-After the iterations, it then removes small clusters using DBSCAN clustering. 
-I am then counting how long the execution of the program took in total and printing this number out,
-and the final processed point cloud is saved to the specified file path and therefore I am returning the file path.
-"""
-
-def preprocessing_stage(filepath, current_step, stage_prefix, num_iterations=12):
+This function preprocesses a point cloud by iteratively removing outliers using the Isolation Forest algorithm.
+After the iterations, it eliminates small clusters using DBSCAN clustering. 
+The function also measures the total execution time, prints it, 
+and saves the final processed point cloud to a specified file path. The function returns the file path.
+  """
     point_cloud = o3d.io.read_point_cloud(filepath)
     
     # Applying machine learning-based outlier removal iteratively 
