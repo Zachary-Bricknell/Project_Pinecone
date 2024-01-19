@@ -1,4 +1,5 @@
 import open3d as o3d
+import logging
 import os
 
 def read_point_cloud(path):
@@ -55,5 +56,17 @@ def modify_filename(filepath, prefix, step):
     # If the new filepath is different from the original, remove the original file
     if filepath != new_filepath and os.path.exists(filepath):
         os.remove(filepath)
-
+        
     return new_filepath
+
+def setup_logging(log_name, log_path):
+    log_directory = log_path + "/logs"
+    os.makedirs(log_directory, exist_ok=True)
+    log_file = os.path.join(log_directory, log_name + ".log")
+    logging.basicConfig(filename=log_file, 
+                        level=logging.INFO, 
+                        format='%(asctime)s - %(levelname)s - %(message)s')
+
+
+
+    

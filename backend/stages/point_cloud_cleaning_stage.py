@@ -1,11 +1,11 @@
-from tkinter import CURRENT
 import open3d as o3d
 import os
 import numpy as np
-from utils.file_operations import modify_filename
+import logging
+from utils.file_operations import modify_filename, setup_logging
 from utils.point_cloud_utils import get_current_step, STAGE_PREFIXES
 
-def cleaning_stage(filepath, current_step, stage_prefix, statistical_nb_neighbors=20, std_ratio=1.0, radius_nb_neighbors=15, radius=0.05, voxel_size=0.02):
+def cleaning_stage(filepath, current_step, stage_prefix, log_path, statistical_nb_neighbors=20, std_ratio=1.0, radius_nb_neighbors=15, radius=0.05, voxel_size=0.02):
     """
     Cleans the point cloud data based on the current cleaning step.
 
@@ -23,8 +23,10 @@ def cleaning_stage(filepath, current_step, stage_prefix, statistical_nb_neighbor
     str: Filepath of the processed point cloud after the current step.
     bool: True if all cleaning steps are complete, False otherwise.
     """
+    setup_logging("cleaning_stage", log_path)    
     point_cloud = o3d.io.read_point_cloud(filepath)
     done_cleaning_data = False
+    logging.info("Executing Cleaning Stage...")
     if current_step == 0:
         filepath = extract_xyz_coordinates(point_cloud, filepath, stage_prefix)
         current_step = 1
@@ -45,6 +47,7 @@ def cleaning_stage(filepath, current_step, stage_prefix, statistical_nb_neighbor
         filepath = voxel_downsample(point_cloud, filepath, stage_prefix, voxel_size)
         done_cleaning_data = True
 
+    logging.info("Cleaning stage completed...")
     return filepath, done_cleaning_data
 
 def extract_xyz_coordinates(point_cloud, filepath, current_stage_prefix):
@@ -61,19 +64,20 @@ def extract_xyz_coordinates(point_cloud, filepath, current_stage_prefix):
     Extracts only the XYZ coordinates from a point cloud, discarding any additional information, notably any RGB data. 
     It saves the point cloud and saves the intermediate state.
     """
-    try:
+    logging.info("Attempting to extract XYZ coordinates...")
+    try:        
         xyz = np.asarray(point_cloud.points)
         new_point_cloud = o3d.geometry.PointCloud()
         new_point_cloud.points = o3d.utility.Vector3dVector(xyz)
 
         new_filepath = modify_filename(filepath, current_stage_prefix, "1")  # cleaning step 1
-        print("xyz coordinates have been extracted")
+        logging.info("xyz coordinates have been extracted")
         o3d.io.write_point_cloud(new_filepath, new_point_cloud)
         
         return new_filepath
     
     except Exception as e:
-        print(f"Failed to extract xyz coordinates: {e}")
+        logging.error(f"Failed to extract xyz coordinates: {e}")
         return filepath
 
 def remove_statistical_outliers(point_cloud, filepath, current_stage_prefix, nb_neighbors, std_ratio):
@@ -91,19 +95,19 @@ def remove_statistical_outliers(point_cloud, filepath, current_stage_prefix, nb_
     Description:
     Removes statistical outliers from a point cloud and saves the intermediate state.
     """
-    
+    logging.info("Attempting to remove statistical outliers...")
     try:
         cl, ind = point_cloud.remove_statistical_outlier(nb_neighbors=nb_neighbors, std_ratio=std_ratio)
         # Use the inlier index to select the points
         point_cloud = point_cloud.select_by_index(ind)
         new_filepath = modify_filename(filepath, current_stage_prefix, "2")  # cleaning 2
         o3d.io.write_point_cloud(new_filepath, point_cloud)
-        print(f"Statistical outliers Removed.")
+        logging.info(f"Statistical outliers Removed.")
 
         return new_filepath
     
     except Exception as e:
-        print(f"Failed to remove Statistical Outliers: {e}")
+        logging.error(f"Failed to remove Statistical Outliers: {e}")
         return filepath
 
 def remove_radius_outliers(point_cloud, filepath, current_stage_prefix, nb_neighbors, radius):
@@ -121,16 +125,17 @@ def remove_radius_outliers(point_cloud, filepath, current_stage_prefix, nb_neigh
     Description:
     Removes radius outliers from a point cloud and saves the intermediate state.
     """
+    logging.info("Attempting to remove radius outliers...")
     try:
-        print("Removing Radius Outliers.")
         _, rad_ind = point_cloud.remove_radius_outlier(nb_points=nb_neighbors, radius=radius)
         point_cloud = point_cloud.select_by_index(rad_ind)
         new_filepath = modify_filename(filepath, current_stage_prefix, "3")  # cleaning step 3
         o3d.io.write_point_cloud(new_filepath, point_cloud)
+        logging.info("Radius outliers removed")
         return new_filepath
     
     except Exception as e:
-        print(f"Failed to remove Radius Outliers: {e}")
+        logging.error(f"Failed to remove Radius Outliers: {e}")
         return filepath
 
 def voxel_downsample(point_cloud, filepath, current_stage_prefix, voxel_size):
@@ -147,13 +152,14 @@ def voxel_downsample(point_cloud, filepath, current_stage_prefix, voxel_size):
     Description:
     Applies voxel downsampling to a point cloud and saves.
     """
+    logging.info("Attempting to voxel downsample...")
     try:
         point_cloud = point_cloud.voxel_down_sample(voxel_size=voxel_size)
         new_filepath = modify_filename(filepath, current_stage_prefix, "4")  # cleaning step 4
         o3d.io.write_point_cloud(new_filepath, point_cloud)
-        print("Voxel Downsampled the point cloud.")
+        logging.info("Voxel Downsampled the point cloud.")
         return new_filepath
     
     except Exception as e:
-        print(f"Failed to Voxel Downsample: {e}")
+        logging.error(f"Failed to Voxel Downsample: {e}")
         return filepath

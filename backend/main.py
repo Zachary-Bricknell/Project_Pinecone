@@ -22,7 +22,7 @@ def main(args):
         shutil.copyfile(original_path, destination_path)
 
         # Process the point cloud using the path to the copied file, retaining the original datas integrity. 
-        processed_file_path = process_point_cloud(destination_path)
+        processed_file_path = process_point_cloud(destination_path, destination_directory)
         print(f"Processed point cloud saved as: {processed_file_path}")
 
     # Visualize the point cloud, prioritizing the processed file if available, checkes if --processed was called previously which produced a definition for processed_file_path
