@@ -16,8 +16,8 @@ Project Pinecone is a Python-based application. The base requirement is python a
 1. Clone the repository: ```git clone https://github.com/Zachary-Bricknell/Project_Pinecone.git\```
 2. Navigate to project directory: ```cd project_pinecone```
 3. *optional:* create a virtual enviornment: ```python -m venv pinecone_venv```
-4.  Activate the Venv(if created on step 3):  windows: ``` pinecone_venv\Scripts\activate``` Linux/MacOS ```source pinecone_venv/bin/activate```
-5.  Install the dependencies: ```pip install requirements.txt```
+4.  Activate the Venv(if created on step 3):  windows: ```pinecone_venv\Scripts\activate``` Linux/MacOS ```source pinecone_venv/bin/activate```
+5.  Install the dependencies: ```pip install -r requirements.txt```
 
 Open3d may require special instructions based on python/os version. visit http://www.open3d.org/ for details.
 
