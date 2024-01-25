@@ -1,6 +1,7 @@
 import open3d as o3d
 import logging
 import os
+from utils.config import STAGE_PREFIXES
 
 def read_point_cloud(path):
     """
@@ -29,34 +30,43 @@ def read_point_cloud(path):
         print(f"Error reading and converting the point cloud: {e}")
         return None
 
+import os
+
 def modify_filename(filepath, prefix, step):
-    """
+    """    
     Parameters:
-    filepath (str): Original file path.
-    filepath (str): Prefix denoting the stage of processing (e.g _cl = data cleaning)
-    step (str): The preprocessing step to append (e.g., '1' for _cl1).
+    - filepath (str): The original file path.
+    - prefix (str): The new prefix to add or update in the filename.
+    - step (str): The step within the processing stage to append.
 
     Returns:
-    str: Modified file path with the updated preprocessing step suffix.
+    - str: The modified file path with the updated or appended prefix and step.
     
-    Destription:
-    Modifies the filename to update the preprocessing step suffix
+    Description:
+    Modifies the filename to include a specified processing stage prefix and step, ensuring that any
+    existing stage prefixes are removed before adding the new one. If no existing prefix is found,
+    the new one is appended.
+    
+    note: STAGE_PREFIXES from point_cloud_utils.py is used to determine any existing prefix.
     """
+    if not os.path.exists(filepath):
+        return filepath 
+
     directory, filename = os.path.split(filepath)
     name, ext = os.path.splitext(filename)
     
-    # Find an existing preprocessing step in the filename and remove it
-    name_parts = name.split(prefix)
-    base_name = name_parts[0]
-    
-    # Append the new preprocessing step suffix to the base filename
-    new_filename = f"{base_name}{prefix}{step}{ext}"
+    # Remove any existing prefix from the filename
+    for _, existing_prefix in STAGE_PREFIXES:
+        if existing_prefix in name:
+            name = name.split(existing_prefix)[0]
+            break  
+
+    #  Append the new filename with updated prefix and step
+    new_filename = f"{name}{prefix}{step}{ext}"
     new_filepath = os.path.join(directory, new_filename)
 
-    # If the new filepath is different from the original, remove the original file
-    if filepath != new_filepath and os.path.exists(filepath):
-        os.remove(filepath)
-        
+    os.rename(filepath, new_filepath)
+
     return new_filepath
 
 def setup_logging(log_name, log_path):
