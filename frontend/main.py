@@ -3,18 +3,13 @@ from tkinter import filedialog
 import subprocess
 import os
 import sys
-
 # For pyinstaller pathing
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-backend_directory = os.path.join(project_root, "backend")
 
-
-sys.path.append(backend_directory)
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
 from backend.main import process, visualize, process_and_visualize
-from backend.stages.point_cloud_preprocessing_stage import * 
 
 
 def browse_file():
@@ -47,15 +42,6 @@ def process_and_visualize_file():
     file_path = file_path_label.cget("text").split("File Path: ")[1]
     destination_directory = os.path.join(os.path.dirname(file_path), "pinecone")
     process_and_visualize(file_path, destination_directory)
-    display_tree_height()
-
-def display_tree_height():
-    file_path = file_path_label.cget("text").split("File Path: ")[1]
-    tree_height = calculate_tree_height(file_path)
-    #File path needs to be changed to the already processed tree, currently it uses the file that is not being modified and calculation is not accurate
-    #Logic is working.
-    print(file_path)
-    tree_height_label.config(text=f"Tree Height: {tree_height} meters")
 
 root = tk.Tk()
 root.title("Pinecone Project")
@@ -78,8 +64,5 @@ visualize_button.pack(pady=10)
 
 process_and_visualize_button = tk.Button(frame, text="Process and Visualize File", command=process_and_visualize_file, font=("Helvetica", 12), state="disabled")
 process_and_visualize_button.pack(pady=10)
-
-tree_height_label = tk.Label(frame, text="Tree height:", font=("Helvetica", 12))
-tree_height_label.pack(pady=10)
 
 root.mainloop()
