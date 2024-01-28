@@ -44,6 +44,8 @@ def preprocessing_stage(filepath, current_step, stage_prefix, log_path, num_iter
             logging.error(f"Error in applying DBSCAN clustering: {e}")
 
     logging.info("Preprocessing Stage Completed")
+    tree_height = calculate_tree_height(filepath)
+    print(f"\nTree height is: {tree_height}")
     return filepath, done_preprocessing
 
 def remove_outliers_isolation_forest(filepath, contamination=0.12):
@@ -115,3 +117,21 @@ def keep_only_largest_cluster(filepath, current_stage_prefix, eps=0.05, min_poin
     except Exception as e:
         logging.error(f"Failed to keep only the largest cluster using DBSCAN: {e}")
         return filepath
+    
+def calculate_tree_height(filepath):
+    """
+    This method calculates the height of the tree from a point cloud.
+
+    Parameters:
+        filepath (str): The file path of the point cloud.
+
+    Returns:
+        float: Height of the tree in meters.
+    """
+    
+    point_cloud = o3d.io.read_point_cloud(filepath)
+    points = np.asarray(point_cloud.points)
+
+    tree_height = np.max(points[:, 2]) - np.min(points[:, 2])
+
+    return tree_height
