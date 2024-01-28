@@ -3,11 +3,12 @@ import os
 import numpy as np
 import logging
 from utils.file_operations import modify_filename, setup_logging
-from utils.point_cloud_utils import get_current_step
-from utils.config import STAGE_PREFIXES
+from utils.point_cloud_utils import get_current_step, STAGE_PREFIXES
 
 def cleaning_stage(filepath, current_step, stage_prefix, log_path, statistical_nb_neighbors=20, std_ratio=1.0, radius_nb_neighbors=15, radius=0.05, voxel_size=0.02):
     """
+    Cleans the point cloud data based on the current cleaning step.
+
     Parameters:
     filepath (str): The file path of the point cloud to process.
     current_step (int): The current step in the cleaning process.
@@ -21,10 +22,6 @@ def cleaning_stage(filepath, current_step, stage_prefix, log_path, statistical_n
     Returns:
     str: Filepath of the processed point cloud after the current step.
     bool: True if all cleaning steps are complete, False otherwise.
-
-    description:
-    Cleans the point cloud data based on the current cleaning step. Each step is done in order. once last step is done,
-    trigger the bool flag to return true. 
     """
     setup_logging("cleaning_stage", log_path)    
     point_cloud = o3d.io.read_point_cloud(filepath)
@@ -158,7 +155,7 @@ def voxel_downsample(point_cloud, filepath, current_stage_prefix, voxel_size):
     logging.info("Attempting to voxel downsample...")
     try:
         point_cloud = point_cloud.voxel_down_sample(voxel_size=voxel_size)
-        new_filepath = modify_filename(filepath, "_pp", "0")  # cleaning step 4
+        new_filepath = modify_filename(filepath, current_stage_prefix, "4")  # cleaning step 4
         o3d.io.write_point_cloud(new_filepath, point_cloud)
         logging.info("Voxel Downsampled the point cloud.")
         return new_filepath
