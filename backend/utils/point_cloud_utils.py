@@ -57,7 +57,7 @@ def visualize_point_cloud(path, origin_path = None):
         raise ValueError(f"Could not read point cloud for visualization: {e}")
 
     vis = o3d.visualization.Visualizer()
-    vis.create_window()
+    vis.create_window(window_name="Project Pinecone Visualizer", width=1920, height=1080)
 
     point_cloud_color = [0.5, 0.5, 0.5] 
     point_cloud.colors = o3d.utility.Vector3dVector([point_cloud_color for i in range(len(point_cloud.points))])
@@ -83,6 +83,6 @@ def visualize_point_cloud(path, origin_path = None):
             vis.add_geometry(new_point_cloud)
         except Exception as e:
             print(f"Could not read the second point cloud: {e}")
-
+        
     vis.run()
     vis.destroy_window()

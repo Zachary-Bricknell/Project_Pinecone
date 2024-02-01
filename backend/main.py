@@ -2,8 +2,6 @@ import argparse
 import os
 import shutil
 import sys
-from utils.file_operations import find_processed_file
-
 
 # Add the backend directory to sys.path
 backend_dir = os.path.dirname(os.path.abspath(__file__))
@@ -11,7 +9,9 @@ if backend_dir not in sys.path:
     sys.path.insert(0, backend_dir)
     
 from utils.point_cloud_utils import visualize_point_cloud
+from utils.file_operations import find_processed_file
 from point_cloud_processor import steps_to_process_point_cloud
+
 
 # Function to process the point cloud
 def process(original_path, destination_directory):

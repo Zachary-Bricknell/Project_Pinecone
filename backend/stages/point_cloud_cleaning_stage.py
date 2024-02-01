@@ -49,7 +49,6 @@ def cleaning_stage(filepath, current_step, stage_prefix, log_path, statistical_n
     if current_step == 3:
         filepath = voxel_downsample(point_cloud, filepath, stage_prefix, voxel_size)
         done_cleaning_data = True
-        return
 
     logging.info("Cleaning stage completed...")
     return filepath, done_cleaning_data
