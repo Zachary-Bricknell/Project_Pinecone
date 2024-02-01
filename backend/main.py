@@ -2,6 +2,8 @@ import argparse
 import os
 import shutil
 import sys
+from utils.file_operations import find_processed_file
+
 
 # Add the backend directory to sys.path
 backend_dir = os.path.dirname(os.path.abspath(__file__))
@@ -17,9 +19,15 @@ def process(original_path, destination_directory):
         os.makedirs(destination_directory)
 
     filename = os.path.basename(original_path)
-    destination_path = os.path.join(destination_directory, filename)
+    
+    existing_file = find_processed_file(filename, destination_directory)
+    if existing_file is None:
+        destination_path = os.path.join(destination_directory, filename)
 
-    shutil.copyfile(original_path, destination_path)
+        shutil.copyfile(original_path, destination_path)
+    else:
+        #A existing file is in the destination, so update to use that one. 
+        destination_path = existing_file
 
     processed_point_cloud = steps_to_process_point_cloud(destination_path, destination_directory)
 
