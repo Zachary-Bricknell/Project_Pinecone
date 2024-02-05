@@ -1,6 +1,7 @@
 import open3d as o3d
 import logging
 import os
+import glob
 from utils.config import STAGE_PREFIXES
 
 def read_point_cloud(path):
@@ -87,6 +88,38 @@ def setup_logging(log_name, log_path):
     logging.basicConfig(filename=log_file, 
                         level=logging.INFO, 
                         format='%(asctime)s - %(levelname)s - %(message)s')
+
+def find_processed_file(input_filename, search_directory):
+    """
+    Parameters:
+    input_filename (str): The name of the file to search for, extension is allowed.
+    search_directory (str): The directory path where the search will be performed.
+
+    Returns:
+    str or None: The path to the first matching file found with exact match as input_filename + *. 
+    Returns None if no matching file is found.
+
+    Description:
+    Removes the extension from the input filename and searches the specified directory for 
+    files that start with the resulting string and followed by any characters.
+    """
+    try:
+        # Remove any extension from the input filename
+        file_to_search = os.path.splitext(input_filename)[0]
+        pattern = os.path.join(search_directory, file_to_search + '*')
+        matching_files = glob.glob(pattern)
+    
+        # Filter out directories
+        matching_files = [f for f in matching_files if os.path.isfile(f)]
+        matched_file = matching_files[0] if matching_files else None
+        if matched_file is not None:
+                logging.info(f"Existing file found at {0}, resuming from this file...", matched_file)
+        # Return the first matching file or None if there are no matches. 
+        return matched_file
+    except Exception as e:
+        logging.error(f"Failed to search for an existing processed file - {e}")
+        return input_filename
+
 
 
 
