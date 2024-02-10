@@ -28,7 +28,7 @@ def preprocessing_stage(filepath, current_step, stage_prefix, log_path, num_iter
     done_preprocessing = False
     logging.info("Preprocessing Stage Initiated")
     if current_step == 0:
-        filepath, success_flag = iterative_isolation_forest(filepath, stage_prefix, num_iterations)
+        filepath, success_flag = remove_outliers_isolation_forest(filepath, stage_prefix, num_iterations)
         if not success_flag:
             logging.error("Error in iterative isolation forest stage.")
             return filepath, False
@@ -46,7 +46,7 @@ def preprocessing_stage(filepath, current_step, stage_prefix, log_path, num_iter
     logging.info("Preprocessing Stage Completed")
     return filepath, done_preprocessing
 
-def remove_outliers_isolation_forest(filepath, contamination=0.12):
+def isolation_forest_step(filepath, contamination=0.12):
     logging.info("Attempting to remove outliers using Isolation Forest...")
     point_cloud = o3d.io.read_point_cloud(filepath)
     try:
@@ -67,13 +67,13 @@ def remove_outliers_isolation_forest(filepath, contamination=0.12):
         return filepath, False
 
     
-def iterative_isolation_forest( filepath, stage_prefix, num_iterations, contamination=0.12):
+def remove_outliers_isolation_forest( filepath, stage_prefix, num_iterations, contamination=0.12):
     logging.info("Iterative Isolation Forest Stage Initiated")
     success_flag = True
     for iteration in range(num_iterations):
         logging.info(f"Iteration {iteration + 1}: Removing outliers using Isolation Forest.")
         try:
-            filepath, success_flag = remove_outliers_isolation_forest(filepath, contamination)
+            filepath, success_flag = isolation_forest_step(filepath, contamination)
             if not success_flag:
                 logging.error("Failed to complete an iteration...")
                 break  # Exit the loop if an iteration fails

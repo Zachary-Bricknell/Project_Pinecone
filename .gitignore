@@ -19,6 +19,7 @@
 
 # testing
 /coverage
+/backend/testing/
 
 # production
 /build
