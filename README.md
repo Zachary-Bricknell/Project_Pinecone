@@ -46,17 +46,7 @@ To use Project Pinecone through the frontend or packaged executable
 2. Select one of the buttons to process, visualize, or process and visualize
 
 
-## Project Members
-
-- **[Zachary Bricknell](https://github.com/Zachary-Bricknell)**: PM/SWE
-- **[Luka](https://github.com/lukanikolaisvili)**: SWE
-- **[Kelly](https://github.com/kelly)**: SWE
-- **[Mohammed](https://github.com/Mohammed)**: SWE
-- **[Frederick](https://github.com/Frederick)**: SWE
-
-
 ## Installation Script
-
 ```pyinstaller --paths ./pinecone_venv/Lib/site-packages --additional-hooks-dir=hooks --name=Project_Pinecone --onefile frontend/main.py --add-data "./backend;./backend" --hidden-import=open3d --hidden-import=sklearn.ensemble --hidden-import=numpy --icon ./resources/icons/pinecone_icon.ico```
 
 - pyinstaller: This is the command to invoke PyInstaller itself.
@@ -68,6 +58,13 @@ To use Project Pinecone through the frontend or packaged executable
 - --hidden-import=open3d, --hidden-import=sklearn.ensemble, --hidden-import=numpy: These options tell PyInstaller to explicitly include these Python packages in the bundle, if its not already found.
 - --icon ./resources/icons/pinecone_icon.ico: Sets the icon for the executable
 
+
+## Project Members
+- **[Zachary Bricknell](https://github.com/Zachary-Bricknell)**: PM/SWE
+- **[Luka](https://github.com/lukanikolaisvili)**: SWE
+- **[Kelly](https://github.com/kelly)**: SWE
+- **[Mohammed](https://github.com/Mohammed)**: SWE
+- **[Frederick](https://github.com/Frederick)**: SWE
 
 
 ## Resources
