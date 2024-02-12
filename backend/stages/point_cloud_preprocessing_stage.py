@@ -39,6 +39,9 @@ def preprocessing_stage(filepath, current_step, stage_prefix, log_path, num_iter
         try:
             logging.info("Applying DBSCAN clustering.")
             filepath = keep_only_largest_cluster(filepath, stage_prefix)
+
+            filepath = post_process(filepath, stage_prefix)
+
             done_preprocessing = True
         except Exception as e:
             logging.error(f"Error in applying DBSCAN clustering: {e}")
@@ -115,3 +118,55 @@ def keep_only_largest_cluster(filepath, current_stage_prefix, eps=0.05, min_poin
     except Exception as e:
         logging.error(f"Failed to keep only the largest cluster using DBSCAN: {e}")
         return filepath
+    
+    import numpy as np
+import open3d as o3d
+import logging
+
+import numpy as np
+import open3d as o3d
+import logging
+
+def post_process(filepath, stage_prefix, density_radius=0.1, density_threshold=50):
+    """
+    Parameters:
+    filepath (str): The file path of the point cloud.
+    stage_prefix (str): The prefix of the current step.
+    density_radius (float): Radius within which to compute point density.
+    density_threshold (int): Minimum number of points within the density radius to consider a point as part of the trunk.
+
+    Returns:
+    str: Filepath of the point cloud after filtering to keep only the trunk of the tree.
+
+    Description:
+    Filters the point cloud to keep only the trunk of the tree based on density within a specified radius.
+    """
+    logging.info("Filtering tree trunk based on density...")
+    point_cloud = o3d.io.read_point_cloud(filepath)
+    
+    # Convert point cloud to numpy array
+    points = np.asarray(point_cloud.points)
+    
+    # Create KDTree for efficient nearest neighbor search
+    kdtree = o3d.geometry.KDTreeFlann(point_cloud)
+    
+    # List to store indices of trunk points
+    trunk_indices = []
+    
+    for i in range(len(points)):
+        # Query points within density_radius
+        [_, density_indices, _] = kdtree.search_radius_vector_3d(points[i], density_radius)
+        
+        # Check density threshold
+        if len(density_indices) >= density_threshold:
+            trunk_indices.append(i)
+    
+    # Extract trunk point cloud
+    trunk_point_cloud = point_cloud.select_by_index(trunk_indices)
+    
+    # Save the resulting point cloud after filtering
+    new_filepath = modify_filename(filepath, stage_prefix, "filtered")
+    o3d.io.write_point_cloud(new_filepath, trunk_point_cloud)
+    logging.info("Tree trunk filtering based on density completed.")
+    
+    return new_filepath
