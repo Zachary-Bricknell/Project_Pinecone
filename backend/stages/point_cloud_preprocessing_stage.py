@@ -5,6 +5,8 @@ import time
 import logging
 from utils.file_operations import modify_filename, setup_logging
 from sklearn.ensemble import IsolationForest
+from sklearn.decomposition import PCA
+
 
 def preprocessing_stage(filepath, current_step, stage_prefix, log_path, num_iterations=12):
     """
@@ -40,7 +42,7 @@ def preprocessing_stage(filepath, current_step, stage_prefix, log_path, num_iter
             logging.info("Applying DBSCAN clustering.")
             filepath = keep_only_largest_cluster(filepath, stage_prefix)
 
-            filepath = post_process(filepath, stage_prefix)
+            filepath = filter_tree_trunk(filepath, stage_prefix)
 
             done_preprocessing = True
         except Exception as e:
@@ -118,55 +120,47 @@ def keep_only_largest_cluster(filepath, current_stage_prefix, eps=0.05, min_poin
     except Exception as e:
         logging.error(f"Failed to keep only the largest cluster using DBSCAN: {e}")
         return filepath
-    
-    import numpy as np
-import open3d as o3d
-import logging
 
-import numpy as np
-import open3d as o3d
-import logging
-
-def post_process(filepath, stage_prefix, density_radius=0.1, density_threshold=50):
+def filter_tree_trunk(filepath, stage_prefix, deviation_threshold=0.01, num_segments=10):
     """
     Parameters:
     filepath (str): The file path of the point cloud.
     stage_prefix (str): The prefix of the current step.
-    density_radius (float): Radius within which to compute point density.
-    density_threshold (int): Minimum number of points within the density radius to consider a point as part of the trunk.
+    deviation_threshold (float): Threshold for deviation from the main axis. Points with a distance greater than this threshold will be considered as branches.
+    num_segments (int): Number of segments to divide the tree trunk along the y-axis.
 
     Returns:
     str: Filepath of the point cloud after filtering to keep only the trunk of the tree.
 
     Description:
-    Filters the point cloud to keep only the trunk of the tree based on density within a specified radius.
+    Filters the point cloud to keep only the trunk of the tree based on deviation from the main axis obtained through principal component analysis (PCA).
     """
-    logging.info("Filtering tree trunk based on density...")
+    logging.info("Filtering tree trunk based on deviation from the main axis...")
     point_cloud = o3d.io.read_point_cloud(filepath)
     
     # Convert point cloud to numpy array
     points = np.asarray(point_cloud.points)
     
-    # Create KDTree for efficient nearest neighbor search
-    kdtree = o3d.geometry.KDTreeFlann(point_cloud)
+    # Perform principal component analysis (PCA)
+    pca = o3d.geometry.PointCloud().estimate_normals(search_param=o3d.geometry.KDTreeSearchParamHybrid(radius=0.1, max_nn=30))
+    main_axis = np.asarray(pca.normals)
     
-    # List to store indices of trunk points
-    trunk_indices = []
+    # Divide the y-axis into segments
+    min_y = np.min(points[:, 1])
+    max_y = np.max(points[:, 1])
+    segment_heights = np.linspace(min_y, max_y, num_segments + 1)
     
-    for i in range(len(points)):
-        # Query points within density_radius
-        [_, density_indices, _] = kdtree.search_radius_vector_3d(points[i], density_radius)
-        
-        # Check density threshold
-        if len(density_indices) >= density_threshold:
-            trunk_indices.append(i)
+    # Create a new file path for the filtered point cloud
+    new_filepath = modify_filename(filepath, stage_prefix, "filtered")
     
-    # Extract trunk point cloud
+    # Apply filtering to the entire point cloud
+    distances = np.abs(np.dot(points - np.mean(points, axis=0), main_axis))
+    trunk_indices = np.where(distances < deviation_threshold)[0]
     trunk_point_cloud = point_cloud.select_by_index(trunk_indices)
     
     # Save the resulting point cloud after filtering
-    new_filepath = modify_filename(filepath, stage_prefix, "filtered")
     o3d.io.write_point_cloud(new_filepath, trunk_point_cloud)
-    logging.info("Tree trunk filtering based on density completed.")
+
+    logging.info("Tree trunk filtering based on deviation from the main axis completed.")
     
     return new_filepath
