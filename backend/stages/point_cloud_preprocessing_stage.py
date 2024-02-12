@@ -7,7 +7,7 @@ from stages.point_cloud_cleaning_stage import *
 
 
 
-def remove_outliers_isolation_forest(point_cloud, contamination=0.12):
+def remove_outliers_isolation_forest(point_cloud, contamination=0.13):
     """
 Parameters:
 <point_cloud> (open3d.geometry.PointCloud): the points that exist in the xyz file
@@ -39,7 +39,7 @@ Using the IsolationForest Algorithm to remove the outliers
 
 
 
-def keep_only_largest_cluster_DBSCAN(point_cloud, eps=0.05, min_points=10):
+def keep_only_largest_cluster_DBSCAN(point_cloud, eps=0.06, min_points=9):
     """
 Parameters:
 <point_cloud> (open3d.geometry.PointCloud): point cloud file
@@ -115,5 +115,5 @@ and saves the final processed point cloud to a specified file path. The function
 
     # Save the final processed point cloud
     o3d.io.write_point_cloud(filepath, point_cloud)
-
+ 
     return filepath, True

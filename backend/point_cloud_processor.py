@@ -1,7 +1,7 @@
 from utils.point_cloud_utils import get_current_step, STAGE_PREFIXES
 from stages.point_cloud_cleaning_stage import cleaning_stage
 from stages.point_cloud_preprocessing_stage import preprocessing_stage
-
+from stages.point_cloud_processing_stage import processing_stage
 
 def process_point_cloud(filepath, log_path):
     """
@@ -27,18 +27,25 @@ def process_point_cloud(filepath, log_path):
     file and a boolean indicating whether all defined steps are completed to indicate completion.
     """
     
+    
+def process_point_cloud(filepath, log_path):
+    stage, current_step = get_current_step(filepath)
     step_complete = True
     new_filepath = filepath
-    stage, current_step = get_current_step(filepath) 
-    
-    # Raw data starts at the cleaning stage.
+
     if stage == 'cleaning':
         new_filepath, step_complete = cleaning_stage(new_filepath, current_step, STAGE_PREFIXES['cleaning'], log_path)
         if step_complete:
             stage = 'preprocessing'
-            
-    if stage == 'preprocessing' and step_complete:
-        new_filepath, step_complete = preprocessing_stage(new_filepath, current_step, STAGE_PREFIXES['preprocessing']) 
 
-    return new_filepath if stage and step_complete else None
-    
+    if stage == 'preprocessing' and step_complete:
+        new_filepath, step_complete = preprocessing_stage(new_filepath, current_step, STAGE_PREFIXES['preprocessing'])
+        if step_complete:
+            stage = 'processing'  # Directly set stage to 'processing'
+
+    if stage == 'processing' and step_complete:
+        new_filepath, step_complete = processing_stage(new_filepath, current_step, STAGE_PREFIXES['processing'], log_path)  # Ensure processing_stage returns filepath and success flag
+        if step_complete:
+            print(f"Processing complete. Tree height calculated.\n")  # Adjusted based on actual return values
+
+    return new_filepath if step_complete else None
