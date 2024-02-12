@@ -142,7 +142,7 @@ def filter_tree_trunk(filepath, stage_prefix, deviation_threshold=0.01, num_segm
     points = np.asarray(point_cloud.points)
     
     # Perform principal component analysis (PCA)
-    pca = o3d.geometry.PointCloud().estimate_normals(search_param=o3d.geometry.KDTreeSearchParamHybrid(radius=0.1, max_nn=30))
+    pca = o3d.geometry.PointCloud().estimate_normals(search_param=o3d.geometry.KDTreeSearchParamHybrid(radius=0.1, max_nn=20))
     main_axis = np.asarray(pca.normals)
     
     # Divide the y-axis into segments
