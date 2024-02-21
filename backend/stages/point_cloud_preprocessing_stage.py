@@ -5,8 +5,8 @@ import time
 import logging
 from utils.file_operations import modify_filename, setup_logging
 from sklearn.ensemble import IsolationForest
-from sklearn.decomposition import PCA
-
+from sklearn.cluster import DBSCAN
+from sklearn.preprocessing import StandardScaler
 
 def preprocessing_stage(filepath, current_step, stage_prefix, log_path, num_iterations=12):
     """
@@ -42,7 +42,7 @@ def preprocessing_stage(filepath, current_step, stage_prefix, log_path, num_iter
             logging.info("Applying DBSCAN clustering.")
             filepath = keep_only_largest_cluster(filepath, stage_prefix)
 
-            filepath = filter_tree_trunk(filepath, stage_prefix)
+            filepath = branch_remover(filepath, stage_prefix)
 
             done_preprocessing = True
         except Exception as e:
@@ -121,46 +121,38 @@ def keep_only_largest_cluster(filepath, current_stage_prefix, eps=0.05, min_poin
         logging.error(f"Failed to keep only the largest cluster using DBSCAN: {e}")
         return filepath
 
-def filter_tree_trunk(filepath, stage_prefix, deviation_threshold=0.01, num_segments=10):
+def branch_remover(filepath, stage_prefix):
     """
     Parameters:
-    filepath (str): The file path of the point cloud.
-    stage_prefix (str): The prefix of the current step.
-    deviation_threshold (float): Threshold for deviation from the main axis. Points with a distance greater than this threshold will be considered as branches.
-    num_segments (int): Number of segments to divide the tree trunk along the y-axis.
+    filepath (str): The file path of the input point cloud.
+    stage_prefix (str): The prefix of the current stage.
 
     Returns:
-    str: Filepath of the point cloud after filtering to keep only the trunk of the tree.
+    str: The file path of the saved trunk point cloud.
 
     Description:
-    Filters the point cloud to keep only the trunk of the tree based on deviation from the main axis obtained through principal component analysis (PCA).
+    Removes branches from the input point cloud based on DBSCAN clustering and saves the trunk points as a separate file.
     """
-    logging.info("Filtering tree trunk based on deviation from the main axis...")
-    point_cloud = o3d.io.read_point_cloud(filepath)
-    
-    # Convert point cloud to numpy array
-    points = np.asarray(point_cloud.points)
-    
-    # Perform principal component analysis (PCA)
-    pca = o3d.geometry.PointCloud().estimate_normals(search_param=o3d.geometry.KDTreeSearchParamHybrid(radius=0.1, max_nn=20))
-    main_axis = np.asarray(pca.normals)
-    
-    # Divide the y-axis into segments
-    min_y = np.min(points[:, 1])
-    max_y = np.max(points[:, 1])
-    segment_heights = np.linspace(min_y, max_y, num_segments + 1)
-    
-    # Create a new file path for the filtered point cloud
-    new_filepath = modify_filename(filepath, stage_prefix, "filtered")
-    
-    # Apply filtering to the entire point cloud
-    distances = np.abs(np.dot(points - np.mean(points, axis=0), main_axis))
-    trunk_indices = np.where(distances < deviation_threshold)[0]
-    trunk_point_cloud = point_cloud.select_by_index(trunk_indices)
-    
-    # Save the resulting point cloud after filtering
-    o3d.io.write_point_cloud(new_filepath, trunk_point_cloud)
+    logging.info("Removing branches...")
 
-    logging.info("Tree trunk filtering based on deviation from the main axis completed.")
-    
-    return new_filepath
+    # Read XYZ point cloud file
+    points = np.loadtxt(filepath)
+
+    # Normalize the point cloud for DBSCAN
+    scaler = StandardScaler()
+    points_scaled = scaler.fit_transform(points)
+
+    # Perform DBSCAN clustering to segment out trunk and branch points
+    dbscan = DBSCAN(eps=0.1, min_samples=16)  # Adjust epsilon and min_samples as needed
+    labels = dbscan.fit_predict(points_scaled)
+
+    # Separate trunk and branch points based on cluster labels
+    trunk_points = points[labels == 0]  # Assuming trunk is labeled as cluster 0
+
+    # Save the trunk points as a separate point cloud file
+    trunk_filepath = modify_filename(filepath, stage_prefix, "trunk")
+    np.savetxt(trunk_filepath, trunk_points)
+
+    logging.info(f"Trunk points saved at: {trunk_filepath}")
+
+    return trunk_filepath
