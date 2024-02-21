@@ -46,6 +46,35 @@ def preprocessing_stage(filepath, current_step, stage_prefix, log_path, num_iter
     logging.info("Preprocessing Stage Completed")
     return filepath, done_preprocessing
 
+def ground_segmentation(filepath, density_radius = 0.05):
+    """
+    Parameters:
+        filepath (str): The file path of the point cloud.
+        density_radius (float): The density radius for segmentation. Defaults to 0.05.
+
+    Returns:
+        None
+
+    Description
+        Loads a point cloud and iteratively removes points below increasing height thresholds, aiming to isolate the ground or lower layers.
+    """
+    pcd = o3d.io.read_point_cloud(filepath)
+    
+    # Get the Z values of the downsampled point cloud
+    z_values = np.asarray(pcd.points)[:, 2]
+    min_z = np.min(z_values)
+    max_z = np.max(z_values)
+
+    # Start from the minimum Z value and incrementally increase the threshold
+    for height_threshold in np.linspace(min_z, max_z, num=100):
+        mask = z_values >= height_threshold  
+        if np.any(~mask): 
+            pcd.points = o3d.utility.Vector3dVector(np.asarray(pcd.points)[mask])
+            z_values = z_values[mask]
+            break 
+    return
+
+
 def isolation_forest_step(filepath, contamination=0.12):
     logging.info("Attempting to remove outliers using Isolation Forest...")
     point_cloud = o3d.io.read_point_cloud(filepath)
@@ -115,3 +144,4 @@ def keep_only_largest_cluster(filepath, current_stage_prefix, eps=0.05, min_poin
     except Exception as e:
         logging.error(f"Failed to keep only the largest cluster using DBSCAN: {e}")
         return filepath
+    
