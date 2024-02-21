@@ -19,7 +19,7 @@ def preprocessing_stage(filepath, current_step, stage_prefix, log_path, num_iter
     bool: True if the preprocessing is successful, False otherwise.
 
     Description:
-    This function preprocesses a point cloud by applying an iterative Isolation Forest method,
+    This function preprocesses a point cloud by applying Ground Segmentation, then an iterative Isolation Forest method,
     followed by DBSCAN clustering to eliminate smaller clusters. It maintains consistency with the cleaning_stage approach.
     """
     
@@ -27,7 +27,17 @@ def preprocessing_stage(filepath, current_step, stage_prefix, log_path, num_iter
     point_cloud = o3d.io.read_point_cloud(filepath)
     done_preprocessing = False
     logging.info("Preprocessing Stage Initiated")
+    
     if current_step == 0:
+        try:
+            logging.info("Applying Ground Segmentation")
+            ground_segmentation(filepath)
+            logging.info("Finished Ground Segmentation")
+            current_step = 1
+        except Exception as e:
+            logging.error(f"Error in applying Ground Segmentation: {e}")
+        
+    if current_step == 1:
         filepath, success_flag = remove_outliers_isolation_forest(filepath, stage_prefix, num_iterations)
         if not success_flag:
             logging.error("Error in iterative isolation forest stage.")
@@ -35,14 +45,14 @@ def preprocessing_stage(filepath, current_step, stage_prefix, log_path, num_iter
         current_step = 1
         filepath = modify_filename(filepath, stage_prefix, current_step)
 
-    if current_step == 1:
+    if current_step == 2:
         try:
             logging.info("Applying DBSCAN clustering.")
             filepath = keep_only_largest_cluster(filepath, stage_prefix)
             done_preprocessing = True
         except Exception as e:
             logging.error(f"Error in applying DBSCAN clustering: {e}")
-
+    
     logging.info("Preprocessing Stage Completed")
     return filepath, done_preprocessing
 
@@ -65,7 +75,7 @@ def ground_segmentation(filepath, density_radius = 0.05):
     min_z = np.min(z_values)
     max_z = np.max(z_values)
 
-    # Start from the minimum Z value and incrementally increase the threshold
+    # Start from the minimum Z value and incrementally increase the threshold until finding the largest plane
     for height_threshold in np.linspace(min_z, max_z, num=100):
         mask = z_values >= height_threshold  
         if np.any(~mask): 
