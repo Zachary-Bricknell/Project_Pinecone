@@ -31,9 +31,10 @@ def preprocessing_stage(filepath, current_step, stage_prefix, log_path, num_iter
     if current_step == 0:
         try:
             logging.info("Applying Ground Segmentation")
-            ground_segmentation(filepath)
+            filepath = ground_segmentation(filepath)
             logging.info("Finished Ground Segmentation")
             current_step = 1
+            filepath = modify_filename(filepath, stage_prefix, current_step)
         except Exception as e:
             logging.error(f"Error in applying Ground Segmentation: {e}")
         
@@ -42,7 +43,7 @@ def preprocessing_stage(filepath, current_step, stage_prefix, log_path, num_iter
         if not success_flag:
             logging.error("Error in iterative isolation forest stage.")
             return filepath, False
-        current_step = 1
+        current_step = 2
         filepath = modify_filename(filepath, stage_prefix, current_step)
 
     if current_step == 2:
@@ -82,7 +83,7 @@ def ground_segmentation(filepath, density_radius = 0.05):
             pcd.points = o3d.utility.Vector3dVector(np.asarray(pcd.points)[mask])
             z_values = z_values[mask]
             break 
-    return
+    return filepath
 
 
 def isolation_forest_step(filepath, contamination=0.12):
