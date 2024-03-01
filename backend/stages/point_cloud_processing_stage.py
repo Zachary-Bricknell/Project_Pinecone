@@ -7,68 +7,52 @@ import time
 
 
 
-def calculate_tree_diameter(filepath, current_step, stage_prefix):
-
+def split_thirteen_cookie(filepath, current_step, stage_prefix):
     """ 
-    This method calculates the height of the tree from a point cloud .
-    as well it splits the tree in 13 equal cookies and counts the height after 1.3m from the ground..."
+    This method calculates the height of the tree from a point cloud.
+    It splits the tree into 13 equal cookies and counts the height after 1.3m from the ground.
     
     Parameters:
         filepath (str): The file path of the point cloud.
             
     Returns:
         float: Height of the tree in meters.
- 
     """
-     
-    
     point_cloud = o3d.io.read_point_cloud(filepath)
     points = np.asarray(point_cloud.points)
     tree_height = np.max(points[:, 2]) - np.min(points[:, 2])
     
-    #same thing as cookies as in the pdf 13 of them in total
-    num_cookies = 13  
-    #this is the 1.3 meter from the ground till the 4th cookie basically
-    initial_height = 1.3  
-    #I am making the each increment to be the 10 percent of the total height of the tree
-    increment = tree_height * 0.1  # 10% of the total height
-    
-    #since we are really starting counting from the 1.3 for the cookies I have assigned the height to start from 1.3 as in the PDF's
-    height_above_ground = initial_height  
-    #The counter for the cookies starts from 1 not from 0...
+    # Define heights for the first four cookies
+    cookie_heights = [0.1, 0.5, 0.9, 1.3]
+    num_cookies = 13
+    height_above_ground = 0  # Initialize height above ground starting from 0 , then the first coockie will be coockie_heights[0] - 0.1
     cookie_count = 1
-    #flag the 5th cookie to start calculations.(currently just declared and defined)
-    reached_fifth_cookie = False
-
-    #Ensure the height above ground is always less than the total tree height, and the cookie count does not exceed 13.
-    while height_above_ground < tree_height and cookie_count < num_cookies:
-        
-        # from 1-4 coockie
-        if cookie_count <=4:
-            #I am not adjusting the height of the tree but still calculating the diameter currently this is the "placeholder"
-            print(f"\ndiameter is at coockie {cookie_count} is: [DIAMETER FORMULA]")
-        
-        #checking if 5th cookie
-        if reached_fifth_cookie:
-          #starting from 1.3 meters from ground 10% increase each time
-            height_above_ground += increment
-            #coockie count + 1
-            cookie_count += 1
-            # height above ground does not exceed the tree height (min)
-            height_above_ground = min(height_above_ground, tree_height) 
-            
-            #printing information some of the parts are placeholders for the diameter formula                      
-            print("\nHeight above ground: {:.2f} meters, Number of cookies: {} and diameter [DIAMETER FORMULA]".format(height_above_ground, cookie_count))
-            
+    
+    while cookie_count <= num_cookies:
+        if cookie_count <= 4:
+            # Calculate diameter for cookies 1-4
+            diameter = calculate_tree_diameter(filepath, current_step, stage_prefix)
+            print(f"\nDiameter at cookie {cookie_count}: {round(diameter,2)} meters, cookie located at height {round(cookie_heights[cookie_count - 1],2)} meters")
+            # Increment height for next cookie
+            height_above_ground = cookie_heights[cookie_count - 1]
+            cookie_count += 1 #1.93537 (round to 2decimals)
         else:
-            #if we have not reached the fifth cookie keep going till we will reach.
+            remaining_height = tree_height-1.3  
+            increment = remaining_height * 0.10  # 10% increment 
+            height_above_ground += increment
+            
+            # making sure that the height does not exceed total tree height
+            height_above_ground = min(height_above_ground, tree_height)
+            
+            # Calculate diameter for cookies 5-13 -- currentyl something is wrong with it still figuring it out...
+            diameter = calculate_tree_diameter(filepath, current_step, stage_prefix)
+            print(f"\nDiameter at cookie {cookie_count}: {round(diameter,2)} meters, cookie located at height {round(height_above_ground,2)} meters")
             cookie_count += 1
-            if cookie_count >= 4:
-                #turning flag to true after we reach the 5th cookie
-                reached_fifth_cookie = True
+    
+    return tree_height
+
                   
 
-  
 def calculate_tree_height(filepath,current_step, stage_prefix):
   
     
@@ -78,10 +62,43 @@ def calculate_tree_height(filepath,current_step, stage_prefix):
     
                 
      #returning the total height of the tree           
-    return tree_height
+    return round(tree_height,2)
 
 
-
+#It does not work so far, needs to be checked
+def calculate_tree_diameter(filepath, current_step, stage_prefix):
+    """
+    Calculate the diameter of the tree at a height of 1.3m above the ground from a point cloud file.
+    
+    Parameters:  
+       
+    Returns:
+        
+    """
+    
+    #Issue is in not being able to grab the correct areas for the diameter, each time
+    #could be something else 
+    #This method is not implemented yet fully only parts of it are, and they are not right, needs to be developed
+    
+    point_cloud = o3d.io.read_point_cloud(filepath)
+    points = np.asarray(point_cloud.points)
+    
+    # Calculate the tree height and determine the ground level
+    
+    tree_height = np.max(points[:, 2]) - np.min(points[:, 2])
+    ground_level = np.min(points[:, 2])
+    
+    # Assuming the tree diameter is to be calculated at 1.3m above the ground
+    target_height = ground_level + 1.3
+    
+    
+    # if len(slice_points) == 0:
+    #     return 0  # No points in the target slice, return 0 as a placeholder
+    
+    # # Calculate the diameter as the maximum distance between any two points in the slice
+    # max_distance = np.max([np.linalg.norm(p1 - p2) for p1 in slice_points for p2 in slice_points])
+    
+    return target_height
 
 
 
@@ -114,9 +131,12 @@ def processing_stage(filepath, current_step, stage_prefix, log_path=None):
         startTime = time.time()
 
         # Calculate tree height
+        split_cookies = split_thirteen_cookie(filepath, current_step, stage_prefix)
         tree_height = calculate_tree_height(filepath, current_step, stage_prefix)
         tree_diameter = calculate_tree_diameter(filepath, current_step, stage_prefix)
+    
         print(f"\nCalculated Tree Height: {tree_height} meters\n")
+        
         # Optionally, log the calculated tree height to a log file
         if log_path is not None:
             with open(log_path, 'a') as log_file:
