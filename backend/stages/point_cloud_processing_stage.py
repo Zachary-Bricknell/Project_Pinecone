@@ -28,6 +28,8 @@ def split_thirteen_cookie(filepath, current_step, stage_prefix):
     height_above_ground = 0  # Initialize height above ground starting from 0 , then the first coockie will be coockie_heights[0] - 0.1
     cookie_count = 1
     
+    recorded_heights = []
+    
     while cookie_count <= num_cookies:
         if cookie_count <= 4:
             # Calculate diameter for cookies 1-4
@@ -35,7 +37,9 @@ def split_thirteen_cookie(filepath, current_step, stage_prefix):
             print(f"\nDiameter at cookie {cookie_count}: {round(diameter,2)} meters, cookie located at height {round(cookie_heights[cookie_count - 1],2)} meters")
             # Increment height for next cookie
             height_above_ground = cookie_heights[cookie_count - 1]
+            recorded_heights.append(height_above_ground)#Recording the heights
             cookie_count += 1 #1.93537 (round to 2decimals)
+            
         else:
             remaining_height = tree_height-1.3  
             increment = remaining_height * 0.10  # 10% increment 
@@ -47,9 +51,12 @@ def split_thirteen_cookie(filepath, current_step, stage_prefix):
             # Calculate diameter for cookies 5-13 -- currentyl something is wrong with it still figuring it out...
             diameter = calculate_tree_diameter(filepath, current_step, stage_prefix)
             print(f"\nDiameter at cookie {cookie_count}: {round(diameter,2)} meters, cookie located at height {round(height_above_ground,2)} meters")
+            recorded_heights.append(height_above_ground) #Recording the heights
             cookie_count += 1
-    
-    return tree_height
+
+    print(f"\ntotal recorded heihgts: {len(recorded_heights)}")
+                    
+    return recorded_heights
 
                   
 
@@ -134,8 +141,12 @@ def processing_stage(filepath, current_step, stage_prefix, log_path=None):
         split_cookies = split_thirteen_cookie(filepath, current_step, stage_prefix)
         tree_height = calculate_tree_height(filepath, current_step, stage_prefix)
         tree_diameter = calculate_tree_diameter(filepath, current_step, stage_prefix)
-    
+
         print(f"\nCalculated Tree Height: {tree_height} meters\n")
+        
+        
+        for i in range(len(split_cookies)):
+            print(round(split_cookies[i],2))
         
         # Optionally, log the calculated tree height to a log file
         if log_path is not None:
