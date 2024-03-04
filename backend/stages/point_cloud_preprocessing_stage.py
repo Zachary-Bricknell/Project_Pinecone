@@ -39,6 +39,7 @@ def preprocessing_stage(filepath, current_step, stage_prefix, log_path, num_iter
             logging.error(f"Error in applying Ground Segmentation: {e}")
         
     if current_step == 1:
+        current_step = 2
         filepath, success_flag = remove_outliers_isolation_forest(filepath, stage_prefix, num_iterations)
         if not success_flag:
             logging.error("Error in iterative isolation forest stage.")
