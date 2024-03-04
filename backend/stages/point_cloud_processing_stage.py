@@ -3,9 +3,17 @@ import numpy as np
 from scipy.optimize import least_squares
 import logging
 
+### Added for log testing, remove when implemented ###
+import os
+import sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from utils.file_operations import setup_logging
+
 #Currently runs as an individual script for testing. user cleaned tapers or primitive shapes. 
 
-def analyze_tree(filepath):
+
+
+def analyze_tree(filepath, log_path):
     """
     Analyzes a tree point cloud to measure the circumference and diameter at various heights by taking in a point cloud of a cleaned tree taper.
     
@@ -15,6 +23,8 @@ def analyze_tree(filepath):
     Returns:
     List of tuples: Each tuple contains the height at which the measurement was taken, the circumference, the radius, and the diameter at that height.
     """
+    setup_logging("cleaning_stage", log_path)     
+
     point_cloud = o3d.io.read_point_cloud(filepath)
     
     z_values = np.asarray(point_cloud.points)[:, 2]
@@ -52,24 +62,29 @@ def fit_circle_to_points(points):
     Returns:
     tuple: The center(two values) and the radius.
     """
-    
-    def residuals(params, x, y):
-        # for use in the least_squares algorithm to get the residuals of the distance 
-        # https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.least_squares.html#scipy.optimize.least_squares 
-        xo, yo, r = params
-        return np.sqrt((x - xo)**2 + (y - yo)**2) - r
+    try:
+        logging.info("Attempting fit_circle_to_points()...")
+        def residuals(params, x, y):
+            # for use in the least_squares algorithm to get the residuals of the distance 
+            # https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.least_squares.html#scipy.optimize.least_squares 
+            xo, yo, r = params
+            return np.sqrt((x - xo)**2 + (y - yo)**2) - r
+        # Initialization using averages
+        x_mean = np.mean(points[:, 0])
+        y_mean = np.mean(points[:, 1])
+        initialization = [x_mean, y_mean, np.std(points[:, 0])]
 
-    # Initialization using averages
-    x_mean = np.mean(points[:, 0])
-    y_mean = np.mean(points[:, 1])
-    initialization = [x_mean, y_mean, np.std(points[:, 0])]
+        x = points[:, 0]
+        y = points[:, 1]
+        result = least_squares(residuals, initialization, args=(x, y))
 
-    x = points[:, 0]
-    y = points[:, 1]
-    result = least_squares(residuals, initialization, args=(x, y))
-
-    xo, yo, r = result.x
-    return xo, yo, r
+        xo, yo, radius = result.x
+        logging.info(f"Extracted radius {radius} at {xo}, {yo}")
+        return xo, yo, radius
+    except Exception as e:
+        logging.error(f"Failed to radius: {e}")
+        return 
+        
 
 def calculate_circumference_of_cylinder(sliced_point_cloud):
     """
@@ -82,14 +97,21 @@ def calculate_circumference_of_cylinder(sliced_point_cloud):
     Returns:
     tuple: The circumference of the fitted cylinder, center(two values), and the radius.
     """
-    # Project the points onto the XY plane
-    points = np.asarray(sliced_point_cloud.points)
-    projected_points = points[:, :2] #Only the x and Y points
+    try:
+        logging.info("Attempting caclulate_circumference_of_cylinder()...")
+        # Project the points onto the XY plane
+        points = np.asarray(sliced_point_cloud.points)
+        projected_points = points[:, :2] #Only the x and Y points
 
-    xo, yo, radius = fit_circle_to_points(projected_points)
+        xo, yo, radius = fit_circle_to_points(projected_points)
 
-    circumference = 2 * np.pi * radius
-    return circumference, xo, yo, radius
+        circumference = 2 * np.pi * radius
+        logging.info(f"Extracted radius {radius} and circumference{circumference} at {xo}, {yo}")
+        return circumference, xo, yo, radius
+
+    except Exception as e:
+        logging.error(f"Failed to radius: {e}")
+        return 
 
 def slice_point_cloud(point_cloud, lower_height, upper_height):
     """
@@ -103,15 +125,21 @@ def slice_point_cloud(point_cloud, lower_height, upper_height):
     Returns:
     open3d.geometry.PointCloud: A new point cloud containing only the points within the specified height range.
     """
-    points = np.asarray(point_cloud.points)
+    try:
+        logging.info("Attempting slice_point_cloud()...")
+        points = np.asarray(point_cloud.points)
     
-    # Filter based on the height
-    sliced_points = points[(points[:, 2] >= lower_height) & (points[:, 2] <= upper_height)]
+        # Filter based on the height
+        sliced_points = points[(points[:, 2] >= lower_height) & (points[:, 2] <= upper_height)]
 
-    sliced_point_cloud = o3d.geometry.PointCloud()
-    sliced_point_cloud.points = o3d.utility.Vector3dVector(sliced_points)
+        sliced_point_cloud = o3d.geometry.PointCloud()
+        sliced_point_cloud.points = o3d.utility.Vector3dVector(sliced_points)
     
-    return sliced_point_cloud
+        logging.info(f"Sliced the point cloud at {lower_height} and {upper_height}")
+        return sliced_point_cloud
+    except Exception as e:
+        logging.error(f"Failed to slice point cloud: {e}")
+        return 
 
 
 def calculate_diameter_at_height(point_cloud, height):
@@ -126,15 +154,20 @@ def calculate_diameter_at_height(point_cloud, height):
     Returns:
     float: The Diameter.
     """
-    # Assuming the tree is upright and Z represents height, slice a thin section around the desired height
-    sliced_point_cloud = slice_point_cloud(point_cloud, height - 0.01, height + 0.01)
-    if len(sliced_point_cloud.points) == 0:
-        logging.warning("No points found at the specified height. Returning 0 for diameter.")
-        return
+    try:
+        logging.info("Attempting calculate_diameter_at_height()...")
+        # Assuming the tree is upright and Z represents height, slice a thin section around the desired height
+        sliced_point_cloud = slice_point_cloud(point_cloud, height - 0.01, height + 0.01)
+        if len(sliced_point_cloud.points) == 0:
+            logging.warning("No points found at the specified height. Returning 0 for diameter.")
+            return
 
-    # Project points onto the XY plane and calculate circumference
-    points = np.asarray(sliced_point_cloud.points)[:, :2]
-    _, _, radius = fit_circle_to_points(points)
-    diameter = 2 * radius
-    return diameter
-
+        # Project points onto the XY plane and calculate circumference
+        points = np.asarray(sliced_point_cloud.points)[:, :2]
+        _, _, radius = fit_circle_to_points(points)
+        diameter = 2 * radius
+        logging.info(f"Extracted diameter {diameter} from the point cloud")
+        return diameter
+    except Exception as e:
+        logging.error(f"Failed to calculate diameter: {e}")
+        return 
