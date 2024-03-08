@@ -1,4 +1,3 @@
-from sre_constants import SUCCESS
 import open3d as o3d
 import os
 import numpy as np
@@ -102,7 +101,7 @@ def remove_radius_outliers(point_cloud, filepath, stage_prefix, current_step, nb
     try:
         _, rad_ind = point_cloud.remove_radius_outlier(nb_points=nb_neighbors, radius=radius)
         point_cloud = point_cloud.select_by_index(rad_ind)
-        filepath = modify_filename(filepath, stage_prefix, current_step)  # Updated to use current_step
+        filepath = modify_filename(filepath, stage_prefix, current_step) 
         o3d.io.write_point_cloud(filepath, point_cloud)
         logging.info("Radius outliers removed")
         return filepath

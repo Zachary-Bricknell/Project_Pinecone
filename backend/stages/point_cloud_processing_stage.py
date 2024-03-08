@@ -31,12 +31,17 @@ def analyze_tree(filepath, log_path):
     base_height = np.min(z_values)  # Accounts for offsets in points not beginning at exactly [0,0,0].
     highest_point = np.max(z_values)
     total_height = highest_point - base_height
-    DBH = 1.3  # Standard Diameter Breast Height.
-    increment_height = (total_height - DBH) / 10
+    DBH = 1.3 # Standard Diameter Breast Height.
+    increment_height = (total_height - DBH) / 100
     measurements = []
     current_height = base_height + DBH
     
-    for _ in range(9):  # Iterate 9 times to cover the tree above DBH
+    ###For testing###
+    current_height = base_height
+    increment_height = 1
+    
+
+    for _ in range(90):  # Iterate 9 times to cover the tree above DBH
         upper_height = current_height + increment_height
         upper_height = min(upper_height, highest_point)
 
@@ -106,7 +111,7 @@ def calculate_circumference_of_cylinder(sliced_point_cloud):
         xo, yo, radius = fit_circle_to_points(projected_points)
 
         circumference = 2 * np.pi * radius
-        logging.info(f"Extracted radius {radius} and circumference{circumference} at {xo}, {yo}")
+        logging.info(f"Extracted radius {radius} and circumference{circumference}")
         return circumference, xo, yo, radius
 
     except Exception as e:
@@ -171,3 +176,15 @@ def calculate_diameter_at_height(point_cloud, height):
     except Exception as e:
         logging.error(f"Failed to calculate diameter: {e}")
         return 
+
+
+#filepath = r"G:\trentu\pinecone\Project_Pinecone\sample_data\pinecone\w07-2018-tree272_pr0.xyz" #Tree
+filepath = r"G:\trentu\pinecone\Project_Pinecone\sample_data\Cone.xyz" #Cone
+#filepath = r"G:\trentu\pinecone\Project_Pinecone\sample_data\cylinder.xyz" #Cylinder
+log_path = r"G:\trentu\pinecone\Project_Pinecone\sample_data\pinecone\logs"
+measurements = analyze_tree(filepath, log_path)
+
+
+for measurement in measurements:
+    print(f"Height: {measurement[0]:.2f} m,  Avg Diameter: {measurement[2]*2:.5f} m, Constrained Diameter {measurement[3]:.5f}")
+

@@ -3,6 +3,8 @@
 /sample_data/
 /sample_data
 
+#Testing enviornment
+/dev_testing
 
 #dev enviornment files
 /venv.bat
