@@ -29,6 +29,7 @@ def preprocessing_stage(filepath, current_step, stage_prefix, log_path):
     Description:
     This function preprocesses a point cloud by dynamically executing the defined operations.
     """
+    
     setup_logging("preprocessing_stage", log_path)
     logging.info("Preprocessing Stage Initiated")
     point_cloud = o3d.io.read_point_cloud(filepath)
@@ -52,15 +53,14 @@ def preprocessing_stage(filepath, current_step, stage_prefix, log_path):
                 
             current_step += 1
             if current_step == len(preprocessing_operations):
-                done_preprocessing = True  # done all preprocessing without failures
-            
+                done_preprocessing = True 
             
         except Exception as e:
             logging.error(f"Error in {operation_info['function']}: {e}")
             return None, False
 
     if done_preprocessing:
-        new_filepath = modify_filename(new_filepath, stage_prefix, current_step)
+        new_filepath = modify_filename(new_filepath, '_PC' , 0)
         o3d.io.write_point_cloud(new_filepath, point_cloud)
         logging.info("Preprocessing Stage Completed successfully.")
         return new_filepath, True

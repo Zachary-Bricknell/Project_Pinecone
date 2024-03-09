@@ -11,9 +11,7 @@ from utils.file_operations import setup_logging
 
 #Currently runs as an individual script for testing. user cleaned tapers or primitive shapes. 
 
-
-
-def analyze_tree(filepath, log_path):
+def processing_stage(filepath, log_path):
     """
     Analyzes a tree point cloud to measure the circumference and diameter at various heights by taking in a point cloud of a cleaned tree taper.
     
@@ -23,38 +21,50 @@ def analyze_tree(filepath, log_path):
     Returns:
     List of tuples: Each tuple contains the height at which the measurement was taken, the circumference, the radius, and the diameter at that height.
     """
-    setup_logging("cleaning_stage", log_path)     
-
-    point_cloud = o3d.io.read_point_cloud(filepath)
+    setup_logging("Processing_Stage", log_path)     
+    point_cloud = o3d.io.read_point_cloud(filepath)    
+    base_height, highest_point, total_height = get_height(point_cloud)
+    #DBH Measurments
+    DBH = 1.3 
+    under_dbh_height = [0.1, 0.5, 0.9]
     
-    z_values = np.asarray(point_cloud.points)[:, 2]
-    base_height = np.min(z_values)  # Accounts for offsets in points not beginning at exactly [0,0,0].
-    highest_point = np.max(z_values)
-    total_height = highest_point - base_height
-    DBH = 1.3 # Standard Diameter Breast Height.
-    increment_height = (total_height - DBH) / 100
+    number_of_cookies = 10
+    increment_height = (total_height - DBH) / number_of_cookies
     measurements = []
     current_height = base_height + DBH
     
-    ###For testing###
-    current_height = base_height
-    increment_height = 1
+    # For measurements below DBH
+    for heights in under_dbh_height:
+        diameter = calculate_diameter_at_height(point_cloud, base_height + heights)
+        measurements.append({"height": heights, "diameter": diameter})
     
-
-    for _ in range(90):  # Iterate 9 times to cover the tree above DBH
-        upper_height = current_height + increment_height
-        upper_height = min(upper_height, highest_point)
-
-        sliced_point_cloud = slice_point_cloud(point_cloud, current_height, upper_height)
-
-        circumference, xo, yo, radius = calculate_circumference_of_cylinder(sliced_point_cloud)
-        diameter_at_upper_height = calculate_diameter_at_height(point_cloud, upper_height)
-        measurements.append((upper_height - base_height, circumference, radius, diameter_at_upper_height))
+    # For measurements from DBH upward
+    for _ in range(number_of_cookies):
+        diameter = calculate_diameter_at_height(point_cloud, current_height)
+        measurements.append({"height": current_height-base_height, "diameter": diameter})
+        current_height += increment_height
         
-        # Prepare for next iteration
-        current_height = upper_height
-    
     return measurements
+
+def get_height(point_cloud):
+    """
+    description:
+    gets the lowest point, highest point, and total hight inbetween based on a numpy array. This accounts for point offsets by using the absolute
+    location of the points filtered by its z values
+    
+    Parameters:
+    point_cloud (open3d.geometry.PointCloud): The point cloud to process.
+    
+    Returns:
+    lowest_point(tuple): The absolute lowest point
+    highest_point(tuple): The absolute highest point
+    total_height(float): The distance in meters, of the two points.
+    """
+    np_array = np.asarray(point_cloud.points)[:, 2]
+    lowest_point = np.min(np_array) 
+    highest_point = np.max(np_array)
+    total_height = highest_point - lowest_point
+    return lowest_point, highest_point, total_height
 
 def fit_circle_to_points(points):
     """
@@ -90,34 +100,6 @@ def fit_circle_to_points(points):
         logging.error(f"Failed to radius: {e}")
         return 
         
-
-def calculate_circumference_of_cylinder(sliced_point_cloud):
-    """
-    Description:
-    Calculates the circumference of a cylinder by fitting a circle to the projected points on the XY plane.
-
-    Parameters:
-    sliced_point_cloud (open3d.geometry.PointCloud): A point cloud object containing just the cylinder to be calculated.
-    
-    Returns:
-    tuple: The circumference of the fitted cylinder, center(two values), and the radius.
-    """
-    try:
-        logging.info("Attempting caclulate_circumference_of_cylinder()...")
-        # Project the points onto the XY plane
-        points = np.asarray(sliced_point_cloud.points)
-        projected_points = points[:, :2] #Only the x and Y points
-
-        xo, yo, radius = fit_circle_to_points(projected_points)
-
-        circumference = 2 * np.pi * radius
-        logging.info(f"Extracted radius {radius} and circumference{circumference}")
-        return circumference, xo, yo, radius
-
-    except Exception as e:
-        logging.error(f"Failed to radius: {e}")
-        return 
-
 def slice_point_cloud(point_cloud, lower_height, upper_height):
     """
     Slices a point cloud based ont he lower and upper bound
@@ -145,7 +127,6 @@ def slice_point_cloud(point_cloud, lower_height, upper_height):
     except Exception as e:
         logging.error(f"Failed to slice point cloud: {e}")
         return 
-
 
 def calculate_diameter_at_height(point_cloud, height):
     """
@@ -176,15 +157,3 @@ def calculate_diameter_at_height(point_cloud, height):
     except Exception as e:
         logging.error(f"Failed to calculate diameter: {e}")
         return 
-
-
-#filepath = r"G:\trentu\pinecone\Project_Pinecone\sample_data\pinecone\w07-2018-tree272_pr0.xyz" #Tree
-filepath = r"G:\trentu\pinecone\Project_Pinecone\sample_data\Cone.xyz" #Cone
-#filepath = r"G:\trentu\pinecone\Project_Pinecone\sample_data\cylinder.xyz" #Cylinder
-log_path = r"G:\trentu\pinecone\Project_Pinecone\sample_data\pinecone\logs"
-measurements = analyze_tree(filepath, log_path)
-
-
-for measurement in measurements:
-    print(f"Height: {measurement[0]:.2f} m,  Avg Diameter: {measurement[2]*2:.5f} m, Constrained Diameter {measurement[3]:.5f}")
-

@@ -10,7 +10,8 @@ if backend_dir not in sys.path:
     
 from utils.point_cloud_utils import visualize_point_cloud
 from utils.file_operations import find_processed_file
-from point_cloud_processor import steps_to_process_point_cloud
+from point_cloud_processor import extract_tree_taper
+from stages.point_cloud_processing_stage import processing_stage
 
 
 # Function to process the point cloud
@@ -29,9 +30,10 @@ def process(original_path, destination_directory):
         #A existing file is in the destination, so update to use that one. 
         destination_path = existing_file
 
-    processed_point_cloud = steps_to_process_point_cloud(destination_path, destination_directory)
-
-    return processed_point_cloud
+    processed_point_cloud = extract_tree_taper(destination_path, destination_directory)
+    point_cloud_metrics = processing_stage(processed_point_cloud, destination_directory)
+    
+    return point_cloud_metrics
 
 # Function to visualize the point cloud
 def visualize(path_to_visualize, original_path = None):
