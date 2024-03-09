@@ -32,8 +32,8 @@ def process(original_path, destination_directory):
 
     processed_point_cloud = extract_tree_taper(destination_path, destination_directory)
     point_cloud_metrics = processing_stage(processed_point_cloud, destination_directory)
-    
-    return point_cloud_metrics
+    print(point_cloud_metrics)
+    return point_cloud_metrics, processed_point_cloud
 
 # Function to visualize the point cloud
 def visualize(path_to_visualize, original_path = None):
@@ -42,8 +42,9 @@ def visualize(path_to_visualize, original_path = None):
 # Function to process and then visualize the point cloud
 def process_and_visualize(original_path, destination_directory):
     starting_point_cloud = original_path
-    processed_file_path = process(original_path, destination_directory)
+    point_cloud_metrics, processed_file_path = process(original_path, destination_directory)
     visualize(processed_file_path, starting_point_cloud)
+    return point_cloud_metrics
 
 def main():
     parser = argparse.ArgumentParser(description="Process and/or visualize point cloud files.")

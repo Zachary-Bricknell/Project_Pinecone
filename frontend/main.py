@@ -18,6 +18,9 @@ def browse_file():
         process_button["state"] = "normal"
         visualize_button["state"] = "normal"
         process_and_visualize_button["state"] = "normal"
+        
+        for entry in dbh_height_group + main_taper_group:
+            entry.delete(0, tk.END)
 
 def process_file():
     file_path = file_path_label.cget("text").split("File Path: ")[1]
@@ -36,8 +39,9 @@ def visualize_file():
 def process_and_visualize_file():
     file_path = file_path_label.cget("text").split("File Path: ")[1]
     destination_directory = os.path.join(os.path.dirname(file_path), "pinecone")
-    process_and_visualize(file_path, destination_directory)
-    
+    processed_file = process_and_visualize(file_path, destination_directory)
+    update_entries(processed_file)
+
 def resource_path(relative_path):
     """
     Helper Function for Pyinstaller to find the "resources" folder when packaged
@@ -55,7 +59,7 @@ def update_entries(data):
     Takes in a list of dictionaries representing height and diameter respectively and updates the 
     textbox entries, set to 2 decimal places each.
     """
-    for i, entry in enumerate(data_entries_group_1 + data_entries_group_2):
+    for i, entry in enumerate(dbh_height_group + main_taper_group):
         height = data[i]['height']
         diameter = data[i]['diameter']
         entry.delete(0, tk.END) 
@@ -97,29 +101,29 @@ process_and_visualize_button = tk.Button(button_frame, text="Process and Visuali
 process_and_visualize_button.pack(side="left", padx=10)
 
 # First group box for DBH entries
-group_1 = LabelFrame(root, text="DBH", padx=10, pady=10)
-group_1.pack(side="top", fill="x", padx=20, pady=10)
+dbh_group = LabelFrame(root, text="DBH", padx=10, pady=10)
+dbh_group.pack(side="top", fill="x", padx=20, pady=10)
 
-data_entries_group_1 = []
+dbh_height_group = []
 for i in range(1, 5):
     row = (i-1) // 2
     col = (i-1) % 2
-    tk.Label(group_1, text=f"Cookie {i}:", font=("Arial", 12)).grid(row=row, column=col*2, sticky="e", padx=5, pady=5)
-    entry = tk.Entry(group_1, bg="lightgrey", font=("Arial", 12))
+    tk.Label(dbh_group, text=f"Cookie {i}:", font=("Arial", 12)).grid(row=row, column=col*2, sticky="e", padx=5, pady=5)
+    entry = tk.Entry(dbh_group, bg="lightgrey", font=("Arial", 12))
     entry.grid(row=row, column=col*2+1, sticky="ew", padx=5, pady=5)
-    data_entries_group_1.append(entry)
+    dbh_height_group.append(entry)
 
 # Second group box for main taper
-group_2 = LabelFrame(root, text="Main Taper", padx=10, pady=10)
-group_2.pack(side="top", fill="x", padx=20, pady=10)
+taper_group = LabelFrame(root, text="Main Taper", padx=10, pady=10)
+taper_group.pack(side="top", fill="x", padx=20, pady=10)
 
-data_entries_group_2 = []
+main_taper_group = []
 for i in range(5, 14):
     row = (i-1) // 2
     col = (i-1) % 2
-    tk.Label(group_2, text=f"Cookie {i}:", font=("Arial", 12)).grid(row=row, column=col*2, sticky="e", padx=5, pady=5)
-    entry = tk.Entry(group_2, bg="lightgrey", font=("Arial", 12))
+    tk.Label(taper_group, text=f"Cookie {i}:", font=("Arial", 12)).grid(row=row, column=col*2, sticky="e", padx=5, pady=5)
+    entry = tk.Entry(taper_group, bg="lightgrey", font=("Arial", 12))
     entry.grid(row=row, column=col*2+1, sticky="ew", padx=5, pady=5)
-    data_entries_group_2.append(entry)
+    main_taper_group.append(entry)
 
 root.mainloop()
