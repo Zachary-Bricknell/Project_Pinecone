@@ -154,7 +154,7 @@ def read_point_cloud_from_file(filepath):
     return point_cloud
 
 
-# Define a dictionary to manage pipeline steps
+
 pipeline_steps = {
     0: ("Ground Segmentation", ground_segmentation),
     1: ("Isolation Forest Outlier Removal", remove_outliers_isolation_forest),
@@ -181,8 +181,8 @@ def preprocessing_stage(filepath, current_step, stage_prefix, log_path, num_iter
             elif step_name == "Random Forest Tree Noise Removal":
                 rf_kwargs = {
                 'n_estimators': 60,
-                'max_depth': 12,  # Adjust parameters as needed
-                # Add more parameters as needed
+                'max_depth': 12, 
+                
                 }
                 filepath, success_flag = step_function(filepath, stage_prefix, **rf_kwargs)
             else:
