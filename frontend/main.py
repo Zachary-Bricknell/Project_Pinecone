@@ -3,7 +3,7 @@ from tkinter import filedialog, LabelFrame
 import subprocess
 import os
 import sys
-# For pyinstaller pathing
+
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 if project_root not in sys.path:
@@ -54,16 +54,19 @@ def resource_path(relative_path):
 
     return os.path.join(base_path, relative_path)
 
-def update_entries(data):
+def update_entries(cookie_data):
     """
-    Takes in a list of dictionaries representing height and diameter respectively and updates the 
-    textbox entries, set to 2 decimal places each.
+    Description:
+    Takes a list of dictionaires depicting the height ('height' key) and diameter ('diameter' value) of 
+    each cookie.
+    
+    Parameters:
+    Data(List): A list of dictionaries
     """
     for i, entry in enumerate(dbh_height_group + main_taper_group):
-        # Correctly access height and diameter using keys from the dictionary
-        height = data[i]['height']
-        diameter = data[i]['diameter']
-        entry.delete(0, tk.END)
+        height = cookie_data[i]['height']
+        diameter = cookie_data[i]['diameter']
+        entry.delete(0, tk.END) # Clears any previous entries
         entry.insert(0, "H: {:.2f} D: {:.2f}".format(height, diameter))
 
 
@@ -101,7 +104,7 @@ visualize_button.pack(side="left", padx=10)
 process_and_visualize_button = tk.Button(button_frame, text="Process and Visualize File", command=process_and_visualize_file, font=("Arial", 12), state="disabled")
 process_and_visualize_button.pack(side="left", padx=10)
 
-# First group box for DBH entries
+# First group box for DBH entries representing the 3 heights below dbh, and dbh
 dbh_group = LabelFrame(root, text="DBH", padx=10, pady=10)
 dbh_group.pack(side="top", fill="x", padx=20, pady=10)
 
@@ -114,7 +117,7 @@ for i in range(1, 5):
     entry.grid(row=row, column=col*2+1, sticky="ew", padx=5, pady=5)
     dbh_height_group.append(entry)
 
-# Second group box for main taper
+# Second group box for main taper to represent the 9 measurable cookies
 taper_group = LabelFrame(root, text="Main Taper", padx=10, pady=10)
 taper_group.pack(side="top", fill="x", padx=20, pady=10)
 
