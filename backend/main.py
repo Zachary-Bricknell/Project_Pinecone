@@ -32,7 +32,6 @@ def process(original_path, destination_directory):
 
     processed_point_cloud = extract_tree_taper(destination_path, destination_directory)
     point_cloud_metrics = processing_stage(processed_point_cloud, destination_directory)
-    print(point_cloud_metrics)
     return point_cloud_metrics, processed_point_cloud
 
 # Function to visualize the point cloud

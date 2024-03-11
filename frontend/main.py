@@ -29,7 +29,7 @@ def process_file():
     if not os.path.exists(destination_directory):
         os.makedirs(destination_directory)
 
-    processed_file = process(file_path, destination_directory)
+    processed_file, _ = process(file_path, destination_directory)
     update_entries(processed_file)
     
 def visualize_file():
@@ -60,9 +60,10 @@ def update_entries(data):
     textbox entries, set to 2 decimal places each.
     """
     for i, entry in enumerate(dbh_height_group + main_taper_group):
+        # Correctly access height and diameter using keys from the dictionary
         height = data[i]['height']
         diameter = data[i]['diameter']
-        entry.delete(0, tk.END) 
+        entry.delete(0, tk.END)
         entry.insert(0, "H: {:.2f} D: {:.2f}".format(height, diameter))
 
 
