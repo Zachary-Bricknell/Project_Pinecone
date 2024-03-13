@@ -17,16 +17,17 @@ cleaning_operations = {
 def cleaning_stage(filepath, log_path):
     """
     Description:
-    Driver code for the cleaning stage execution.
+    Driver code for the cleaning stage execution, aimed at producing a less dense point cloud by 
+    removing noise and outliers without altering its overall structure. This stage consists of 
+    multiple operations executed in a predefined order.
 
     Parameters:
     filepath (str): The file path of the input point cloud.
-    current_step (int): The current step in the cleaning process.
-    stage_prefix (str): The prefix of the current cleaning stage.
     log_path (str): The path to store log files.
 
     Returns:
-    tuple: A tuple containing the (str)filepath of the cleaned point cloud and a (bool)flag indicating completion.
+    tuple: A tuple containing the filepath of the cleaned point cloud (str) and a flag (bool) 
+    indicating whether the stage completed successfully.
     """
     setup_logging("cleaning_stage", log_path)
     point_cloud = o3d.io.read_point_cloud(filepath)
@@ -61,16 +62,14 @@ def cleaning_stage(filepath, log_path):
 def extract_xyz_coordinates(point_cloud):
     """
     Description:
-    Extracts XYZ coordinates from a file, removing excess values such as RGB.
+    Extracts XYZ coordinates from a point cloud, removing excess values such as RGB.
 
     Parameters:
     point_cloud (open3d.geometry.PointCloud): The point cloud to process.
-    filepath (str): The file path of the point cloud.
-    stage_prefix (str): The prefix of the current step.
-    current_step (int): The current processing step.
 
     Returns:
-    tuple: A tuple containing the new (open3d.geometry.PointCloud) point cloud, its corresponding (str)file path and the (bool) success flag.
+    tuple: A tuple containing the new point cloud (open3d.geometry.PointCloud), its corresponding 
+    file path (str), and a flag (bool) indicating success.
     """
     logging.info("Extracting XYZ coordinates...")  
     try:
@@ -82,22 +81,20 @@ def extract_xyz_coordinates(point_cloud):
         logging.error(f"Failed to extract XYZ coordinates: {e}")
         return point_cloud, False
 
-#@@ Deprecated but left in as an example @@#
+# Deprecated due to resource constraints
 def remove_radius_outliers(point_cloud, nb_neighbors=15, radius=0.05):
     """
     Description:
-    Removes radius outliers from a point cloud and saves the intermediate state.
+    [Deprecated] Removes radius outliers from a point cloud and saves the intermediate state.
 
     Parameters:
     point_cloud (open3d.geometry.PointCloud): The point cloud to process.
-    filepath (str): The file path of the point cloud.
-    stage_prefix (str): The prefix of the current step.
-    current_step (int): The current processing step.
     nb_neighbors (int): Number of neighbors to use for radius outlier removal. Default is 15.
     radius (float): Radius for outlier removal. Default is 0.05.
 
     Returns:
-    str: Filepath of the point cloud after removing radius outliers.
+    tuple: A tuple containing the new point cloud after removing outliers (open3d.geometry.pointCloud) 
+    and a flag (bool) indicating success.
     """
     logging.info("Attempting to remove radius outliers...")
     try:
@@ -112,18 +109,16 @@ def remove_radius_outliers(point_cloud, nb_neighbors=15, radius=0.05):
 def remove_statistical_outliers(point_cloud, nb_neighbors = 20, std_ratio = 1.0):
     """
     Description:
-    Removes statistical outliers from a point cloud and saves the intermediate state.
+    Removes statistical outliers from a point cloud.
 
     Parameters:
     point_cloud (open3d.geometry.PointCloud): The point cloud to process.
-    filepath (str): The file path of the point cloud.
-    stage_prefix (str): The prefix of the current step.
-    current_step (int): The current processing step.
     nb_neighbors (int): Number of neighbors to use for statistical outlier removal. Default is 20.
     std_ratio (float): Standard deviation ratio for statistical outlier removal. Default is 1.0.
 
     Returns:
-    tuple: A tuple containing the new (open3d.geometry.PointCloud) point cloud, its corresponding (str)file path and the (bool) success flag.
+    tuple: A tuple containing the new point cloud (open3d.geometry.PointCloud), and a flag (bool) 
+    indicating success.
     """
     logging.info("Removing statistical outliers...")   
     try:
@@ -137,17 +132,15 @@ def remove_statistical_outliers(point_cloud, nb_neighbors = 20, std_ratio = 1.0)
 def voxel_downsample(point_cloud, voxel_size = 0.02):
     """
     Description:
-    Downsamples a point cloud using the voxel grid downsampling.
+    Downsamples a point cloud using voxel grid downsampling.
 
     Parameters:
     point_cloud (open3d.geometry.PointCloud): The point cloud to process.
-    filepath (str): The file path of the point cloud.
-    stage_prefix (str): The prefix of the current step.
-    current_step (int): The current processing step.
     voxel_size (float): Voxel size for downsampling. Default is 0.02.
 
     Returns:
-    tuple: A tuple containing the new (open3d.geometry.PointCloud) point cloud, its corresponding (str)file path and the (bool) success flag.
+    tuple: A tuple containing the new point cloud after downsampling (open3d.geometry.PointCloud), 
+    and a flag (bool) indicating success.
     """
     logging.info("Voxel downsampling...")    
     try:

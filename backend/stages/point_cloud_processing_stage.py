@@ -12,15 +12,19 @@ from utils.file_operations import setup_logging
 
 def processing_stage(filepath, log_path):
     """
-    Analyzes a tree point cloud to measure the circumference and diameter at various heights by taking in a point cloud of a cleaned tree taper.
+    Description:
+    Analyzes a tree point cloud to measure the Circumference, to obtain Diameter, at various heights by taking in a point cloud of a cleaned tree taper.
+    The heights required are defined by the Ministry of Natural Resources and Forestry. DBH Defined at 1.3 meters, it measures this, and the heights below DBH
+    (0.1, 0.5, and 0.9) and then starting from DBH, it calculates the rest of the tree divided into 10 equal segments. 
     
     Parameters:
     filepath (str): The file path of the point cloud.
+    log_path (str): The path to store log files.
     
     Returns:
-    List of tuples: Each tuple contains the height at which the measurement was taken, the circumference, the radius, and the diameter at that height.
-    """        
-
+    measurements(list of dictionaries): a list of dictionaries denoting height of the measurement ('height') 
+        and the diameter ('diameter') at that height. 
+    """
     setup_logging("Processing_Stage", log_path)     
     point_cloud = o3d.io.read_point_cloud(filepath)
     

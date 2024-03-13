@@ -9,7 +9,7 @@ project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
-from backend.main import process, visualize, process_and_visualize
+from backend.main import process, visualize_point_cloud, process_and_visualize
 
 def browse_file():
     file_path = filedialog.askopenfilename(filetypes=[("XYZ Files", "*.xyz")])
@@ -34,7 +34,7 @@ def process_file():
     
 def visualize_file():
     file_path = file_path_label.cget("text").split("File Path: ")[1]
-    visualize(file_path)
+    visualize_point_cloud(file_path)
     
 def process_and_visualize_file():
     file_path = file_path_label.cget("text").split("File Path: ")[1]

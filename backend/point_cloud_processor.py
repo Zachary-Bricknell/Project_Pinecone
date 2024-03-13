@@ -22,10 +22,7 @@ def extract_tree_taper(filepath, log_path):
     Processes a point cloud file sequentially through defined stages.
     The function identifies the current stage based on the file's naming convention, then applies the appropriate
     processing functions for each stage in sequence. If a stage completes successfully, the file is prepared for the next stage.
-    Processing halts if a stage fails to complete or an error occurs.
-    
-    Notes:
-    Acts as the driver code for --process, where main.py currently defines all argparse functions
+    Processing halts if a stage fails to complete or an error occurs. Updates the filename on success to denote preprocessiong completion. 
     """
     setup_logging("extract_tree_taper", log_path)
     stages_map = {
@@ -33,7 +30,6 @@ def extract_tree_taper(filepath, log_path):
         'preprocessing': preprocessing_stage,
     }
 
-    # Determine the initial stage based on the filename suffix
     initial_stage = get_current_stage(filepath)
     logging.info(f"Initial processing stage: {initial_stage}")
     

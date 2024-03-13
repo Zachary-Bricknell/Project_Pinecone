@@ -23,19 +23,18 @@ preprocessing_operations = {
 }
 
 def preprocessing_stage(filepath, log_path):
-    """
+    """        
+    Description:
+    This driver function preprocesses a point cloud by using various pre-defined, and custom functions to 
+    reduce what we define as "noise" to produce as close to a tree taper as we can. 
+    
     Parameters:
     filepath (str): The file path of the input point cloud.
-    current_step (int): The current step in the preprocessing process.
-    stage_prefix (str): The prefix of the current preprocessing stage.
     log_path (str): The path to store log files.
 
     Returns:
-    str: The file path of the final processed point cloud.
+    new_filepath (str): The file path of the final processed point cloud.
     bool: True if the preprocessing is successful, False otherwise.
-    
-    Description:
-    This function preprocesses a point cloud by dynamically executing the defined operations.
     """
     setup_logging("preprocessing_stage", log_path)
     logging.info("Preprocessing Stage Initiated")
@@ -67,15 +66,15 @@ def preprocessing_stage(filepath, log_path):
 
 def ground_segmentation(point_cloud):
     """
+    Description:
+    Loads a point cloud isolates the ground plane by slicing the point cloud vertically and finding the largest plane, vertically. 
+
     Parameters:
     point_cloud (open3d.geometry.PointCloud): The point cloud to process.
 
     Returns:
-    point_cloud (open3d.geometry.PointCloud): point cloud with the removed ground plane
+    point_cloud (open3d.geometry.PointCloud): Point cloud with the removed ground plane
     Bool: Denotes the completion of the function
-
-    Description
-    Loads a point cloud isolates the ground plane by slicing the point cloud vertically and finding the largest plane, vertically. 
     """
     try:
         z_values = np.asarray(point_cloud.points)[:, 2]
@@ -96,16 +95,16 @@ def ground_segmentation(point_cloud):
 
 def isolation_forest_step(point_cloud, contamination=0.12):
     """
+    Description:
+    Identifies and removes outliers based on the contamination rate.
+
     Parameters:
     point_cloud (open3d.geometry.PointCloud): The input point cloud.
     contamination (float): Estimated proportion of outliers.
 
     Returns:
     point_cloud (open3d.geometry.PointCloud): Point cloud after outlier removal.
-    Bool: denotes success of the step
-
-    Description:
-    Identifies and removes outliers based on the contamination rate.
+    Bool: Denotes success of the step
     """
     logging.info("Attempting a step of Isolation Forest...")
     try:
@@ -124,17 +123,17 @@ def isolation_forest_step(point_cloud, contamination=0.12):
     
 def remove_outliers_isolation_forest(point_cloud, num_iterations=12, contamination=0.12):
     """
+    Description:
+    Refines the point cloud by repeatedly removing outliers with the Isolation Forest algorithm.
+
     Parameters:
     point_cloud (open3d.geometry.PointCloud): The input point cloud.
-    num_iterations (int): Number of iterations to refine outlier removal.
-    contamination (float): Estimated proportion of outliers in each iteration.
+    num_iterations (int, Default = 12): Number of iterations to refine outlier removal.
+    contamination (float, Default = 0.12): Estimated proportion of outliers in each iteration.
 
     Returns:
     point_cloud (open3d.geometry.PointCloud): Processed point cloud with outliers removed.
-    Bool: Denotes successfull completion of the function
-
-    Description:
-    Refines the point cloud by repeatedly removing outliers with the Isolation Forest algorithm in isolation_forest_step()
+    Bool: Denotes successful completion of the function
     """
     logging.info("Attempting Isolation Forest...")
     success_flag = True
@@ -152,17 +151,17 @@ def remove_outliers_isolation_forest(point_cloud, num_iterations=12, contaminati
 
 def keep_only_largest_cluster(point_cloud, eps=0.05, min_points=10):
     """
+    Description:
+    Applies DBSCAN clustering to a point cloud, identifying the largest continuous cluster of points
+
     Parameters:
     point_cloud (open3d.geometry.PointCloud): The point cloud to process.
-    eps (float): Maximum distance between two data points for neighborhood.
-    min_points (int): Minimum number of points considered as a cluster.
+    eps (float, Default = 0.05): Maximum distance between two data points for neighborhood.
+    min_points (int, Default = 10): Minimum number of points considered as a cluster.
 
     Returns:
     point_cloud (open3d.geometry.PointCloud): The point cloud after keeping only the largest cluster.
     Bool: Denotes completion of the function
-    
-    Description:
-    Applies DBSCAN clustering to a point cloud, keeping only the largest cluster and saves the intermediate state.
     """
     logging.info("Attempting DBSCAN...")
     try:

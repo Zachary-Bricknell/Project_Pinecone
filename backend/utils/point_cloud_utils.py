@@ -9,14 +9,14 @@ from scipy.optimize import least_squares
 
 def get_current_stage(filepath):
     """
+    Description:
+    Determines the current stage from the suffix of the filename.
+
     Parameters:
-    - filepath (str): The file path of the point cloud.
+    filepath (str): The file path of the point cloud.
 
     Returns:
-    - tuple: A tuple containing the stage name and the step number such as: ('cleaning', 1).
-    
-    Description:
-    Determines the current stage and step from the filename based on predefined prefixes and the preceeding integer for the step.
+    default_stage (str): A string containing the name of the stage
     """
     # Use config to get first stage
     default_stage = STAGE_PREFIXES[0][0]
@@ -27,17 +27,15 @@ def get_current_stage(filepath):
 
     return default_stage
 
-def visualize_point_cloud(path, origin_path = None):
+def point_cloud_visualizer(path, origin_path = None):
     """
+    Description:
+    Opens and visualizes a point cloud from a given file path, or a comparison of two point clouds. 
+    Draws the original in red, and the derived point cloud in gray, or just a single point cloud in gray.
+
     Parameters:
     path (str): The file path of the point cloud to visualize.
-    origin_path: This is another path of a point cloud(The oroginal) to visualize alongside the new one.
-
-    Returns: 
-    none
-    
-    Description:
-    Opens and visualizes a point cloud from a given file path, or a comparison of two point clouds.
+    origin_path (str, optional): Another path of a point cloud (the original) to visualize alongside the new one.
     """
     try:
         point_cloud = o3d.io.read_point_cloud(path)
@@ -79,17 +77,14 @@ def visualize_point_cloud(path, origin_path = None):
     
 def get_height(point_cloud):
     """
-    description:
-    gets the lowest point, highest point, and total hight inbetween based on a numpy array. This accounts for point offsets by using the absolute
-    location of the points filtered by its z values
-    
+    Description:
+    Gets the lowest point, highest point, and total height in between based on a numpy array.
+
     Parameters:
     point_cloud (open3d.geometry.PointCloud): The point cloud to process.
-    
+
     Returns:
-    lowest_point(tuple): The absolute lowest point
-    highest_point(tuple): The absolute highest point
-    total_height(float): The distance in meters, of the two points.
+    tuple: The lowest point, the highest point, and the total height.
     """
     np_array = np.asarray(point_cloud.points)[:, 2]
     lowest_point = np.min(np_array) 
@@ -103,10 +98,10 @@ def fit_circle_to_points(points):
     Fits a circle to a set of 2D points using least squares optimization.
 
     Parameters:
-    points (numpy array): A 2d array points in the form [[x1, y1], [x2, y2], ...]
+    points (numpy array): A 2d array of x and y points.
 
     Returns:
-    tuple: The center(two values) and the radius.
+    tuple: The center coordinates(x and y naught) and the radius of the fitted circle.
     """
     try:
         logging.info("Attempting fit_circle_to_points()...")
@@ -133,7 +128,8 @@ def fit_circle_to_points(points):
         
 def slice_point_cloud(point_cloud, lower_height, upper_height):
     """
-    Slices a point cloud based ont he lower and upper bound
+    Description:
+    Slices a point cloud based on the lower and upper bounds of height.
 
     Parameters:
     point_cloud (open3d.geometry.PointCloud): The original point cloud.
@@ -141,7 +137,8 @@ def slice_point_cloud(point_cloud, lower_height, upper_height):
     upper_height (float): The upper bound for height.
 
     Returns:
-    open3d.geometry.PointCloud: A new point cloud containing only the points within the specified height range.
+    sliced_point_cloud (open3d.geometry.PointCloud): The point cloud containing only the points within the specified height range.
+    mask (numpy array): A mask indicating which points in the original point cloud are within the specified height range.
     """
     try:
         logging.info("Attempting slice_point_cloud()...")
@@ -171,7 +168,7 @@ def calculate_diameter_at_height(point_cloud, height):
     height (float): The height to obtain the diameter.
 
     Returns:
-    float: The Diameter.
+    diameter (float): The Diameter.
     """
     try:
         logging.info("Attempting calculate_diameter_at_height()...")
