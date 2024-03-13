@@ -3,6 +3,7 @@ import logging
 import os
 import glob
 from utils.config import STAGE_PREFIXES
+import logging
 
 def read_point_cloud(path):
     """
@@ -24,50 +25,65 @@ def read_point_cloud(path):
         if file_extension == '.xyz':
             return o3d.io.read_point_cloud(path)
         else:
-            print(f"Unsupported file format: {file_extension}")
+            logging.error(f"Unsupported file format: {file_extension}")
             return None
 
     except Exception as e:
-        print(f"Error reading and converting the point cloud: {e}")
+        logging.error(f"Error reading and converting the point cloud: {e}")
         return None
 
 import os
 
-def modify_filename(filepath, prefix, step):
+def modify_filename(filepath, prefix):
     """    
     Parameters:
-    - filepath (str): The original file path.
-    - prefix (str): The new prefix to add or update in the filename.
-    - step (str): The step within the processing stage to append.
+    filepath (str): The original file path.
+    prefix (str): The new prefix to add or update in the filename.
 
     Returns:
-    - str: The modified file path with the updated or appended prefix and step.
+    str: The modified file path with the updated or appended prefix and step.
     
     Description:
-    Modifies the filename to include a specified processing stage prefix and step, ensuring that any
+    Modifies the filename to include a specified processing stage prefix, ensuring that any
     existing stage prefixes are removed before adding the new one. If no existing prefix is found,
     the new one is appended.
-    
-    note: STAGE_PREFIXES from point_cloud_utils.py is used to determine any existing prefix.
     """
-    if not os.path.exists(filepath):
-        return filepath 
-
     directory, filename = os.path.split(filepath)
     name, ext = os.path.splitext(filename)
-    
-    # Remove any existing prefix from the filename
-    for _, existing_prefix in STAGE_PREFIXES:
-        if existing_prefix in name:
-            name = name.split(existing_prefix)[0]
-            break  
 
-    #  Append the new filename with updated prefix and step
-    new_filename = f"{name}{prefix}{step}{ext}"
+    # Remove any existing stage prefix from the filename
+    for stage_name, existing_prefix in STAGE_PREFIXES:
+        # Check and remove existing_prefix if present
+        if filename.endswith(existing_prefix + ext):
+            name = name[:-len(existing_prefix)]  # Remove the existing prefix from the name
+            break
+
+    # Append the new filename with updated prefix
+    new_filename = f"{name}{prefix}{ext}"
     new_filepath = os.path.join(directory, new_filename)
 
-    os.rename(filepath, new_filepath)
+    # Renaming the file if it exists; otherwise, just return the new filepath
+    if os.path.exists(filepath):
+        os.rename(filepath, new_filepath)
+    return new_filepath
 
+def write_to_file(point_cloud, filepath, prefix):
+    """    
+    Parameters:
+    point_cloud: The up to date point cloud to be written to new file.
+    filepath (str): The original file path.
+    prefix (str): The new prefix to add or update in the filename.
+
+    Returns:
+    str: The modified file path with the updated or appended prefix and step.
+    
+    Description:
+    his function updates the provided filepath by appending a specified prefix to the filename.
+    It then writes the given point cloud data to this new file path, effectively saving the processed
+    point cloud under a new name that reflects its last fully completed step
+    """
+    new_filepath = modify_filename(filepath, prefix)
+    o3d.io.write_point_cloud(new_filepath, point_cloud)
     return new_filepath
 
 def setup_logging(log_name, log_path):

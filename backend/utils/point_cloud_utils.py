@@ -7,7 +7,7 @@ from utils.file_operations import modify_filename
 from utils.config import STAGE_PREFIXES
 from scipy.optimize import least_squares
 
-def get_current_step(filepath):
+def get_current_stage(filepath):
     """
     Parameters:
     - filepath (str): The file path of the point cloud.
@@ -18,26 +18,14 @@ def get_current_step(filepath):
     Description:
     Determines the current stage and step from the filename based on predefined prefixes and the preceeding integer for the step.
     """
-    
-    # Default to the first stage if no specific prefix is found in the filename
-    stage = STAGE_PREFIXES[0][0]
-    step = 0
+    # Use config to get first stage
+    default_stage = STAGE_PREFIXES[0][0]
 
-    # Iterate through predefined stage prefixes to identify the current stage and step
     for stage_name, prefix in STAGE_PREFIXES:
         if prefix in filepath:
-            stage = stage_name  # Update to the found stage
+            return stage_name 
 
-            step_index = filepath.find(prefix) + len(prefix)
-            
-            # Extract and convert the step number to ensure it's a digit. 
-            step_string = ''.join(char for char in filepath[step_index:] if char.isdigit())
-            step = int(step_string) if step_string else 0  # Default to 0 if no digits found
-            
-            break  # Stop searching once the first matching prefix is found
-
-    return stage, step
-
+    return default_stage
 
 def visualize_point_cloud(path, origin_path = None):
     """
@@ -84,7 +72,7 @@ def visualize_point_cloud(path, origin_path = None):
 
             vis.add_geometry(new_point_cloud)
         except Exception as e:
-            print(f"Could not read the second point cloud: {e}")
+            logging.error(f"Could not read the second point cloud: {e}")
         
     vis.run()
     vis.destroy_window()

@@ -1,9 +1,11 @@
+from backend.stages.point_cloud_processing_stage import processing_stage
 from utils.file_operations import modify_filename, setup_logging
-from utils.point_cloud_utils import get_current_step
+from utils.point_cloud_utils import get_current_stage
 from stages.point_cloud_cleaning_stage import cleaning_stage
 from stages.point_cloud_preprocessing_stage import preprocessing_stage
 from utils.config import STAGE_PREFIXES
 import os
+import logging
 import open3d as o3d
 
 def extract_tree_taper(filepath, log_path):
@@ -25,49 +27,43 @@ def extract_tree_taper(filepath, log_path):
     Notes:
     Acts as the driver code for --process, where main.py currently defines all argparse functions
     """
+    setup_logging("extract_tree_taper", log_path)
     stages_map = {
         'cleaning': cleaning_stage,
-        'preprocessing': preprocessing_stage
+        'preprocessing': preprocessing_stage,
     }
+
+    # Determine the initial stage based on the filename suffix
+    initial_stage = get_current_stage(filepath)
+    logging.info(f"Initial processing stage: {initial_stage}")
     
-    new_filepath = filepath
-    stage, current_step = get_current_step(filepath)
-    if stage == "_PC":
-        return filepath # Already Preprocessed
-    
-    stage_index = next((index for index, (name, _) in enumerate(STAGE_PREFIXES) if name == stage), 0)
+    if initial_stage == STAGE_PREFIXES[-1][0]:
+        return filepath
 
-    # Called the base name of the file being processed to easily reference. 
-    log_filename = os.path.splitext(os.path.basename(filepath))[0]
-    setup_logging(log_filename, log_path)
+    for stage_name, _ in STAGE_PREFIXES:
+        if stage_name in stages_map:
+            logging.info(f"Checking stage: {stage_name}")
 
-    stage_index = next((index for index, s in enumerate(STAGE_PREFIXES) if s[0] == stage), None)
-
-    if stage_index is None:
-        print(f"Unknown stage: {stage}")
-        return None
-
-    for index in range(stage_index, len(STAGE_PREFIXES)):
-        stage_name, stage_prefix = STAGE_PREFIXES[index]
-        stage_function = stages_map.get(stage_name)
-
-        if not stage_function: 
-            print(f"No processing function defined for stage '{stage_name}'")
-            continue
-
-        try:
-            new_filepath, step_complete = stage_function(new_filepath, current_step, stage_prefix, log_path)
-            if not step_complete:
-                print(f"Stage '{stage_name}' did not complete")
-                return None
-
-            if index + 1 < len(STAGE_PREFIXES):
-                next_stage_name, next_stage_prefix = STAGE_PREFIXES[index + 1]
-                new_filepath = modify_filename(new_filepath, next_stage_prefix, "0")
-                current_step = 0
+            # Check if it is the current stage, or next stage to be completed
+            if initial_stage == stage_name or initial_stage == "new" or initial_stage == "":
+                logging.info(f"Starting stage: {stage_name}")
                 
-        except Exception as e:
-            print(f"An error occurred during the '{stage_name}' stage: {e}")
-            return None
+                try:
+                    stage_function = stages_map[stage_name]
+                    filepath, process_success = stage_function(filepath, log_path)
+                    if not process_success:
+                        logging.error(f"Stage '{stage_name}' did not complete successfully.")
+                        return None
+                    
+                except Exception as e:
+                    logging.error(f"An error occurred during the '{stage_name}' stage: {e}")
+                    return None                
+            # Flag to continue to the next stages
+            initial_stage = "new"
+            
+        else:
+            logging.error(f"No processing function defined for stage '{stage_name}'")
 
+    logging.info("Processing completed for all stages.")
+    new_filepath = modify_filename(filepath, STAGE_PREFIXES[-1][1])
     return new_filepath

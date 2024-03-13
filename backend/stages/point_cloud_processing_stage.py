@@ -22,7 +22,8 @@ def processing_stage(filepath, log_path):
     """        
 
     setup_logging("Processing_Stage", log_path)     
-    point_cloud = o3d.io.read_point_cloud(filepath)    
+    point_cloud = o3d.io.read_point_cloud(filepath)
+    
     base_height, highest_point, total_height = get_height(point_cloud)
     #DBH Measurments
     DBH = 1.3 
@@ -33,7 +34,6 @@ def processing_stage(filepath, log_path):
     measurements = []
     current_height = base_height + DBH
 
-    o3d.visualization.draw_geometries([point_cloud])
     # For measurements below DBH
     for heights in under_dbh_height:
         diameter = calculate_diameter_at_height(point_cloud, base_height + heights)
