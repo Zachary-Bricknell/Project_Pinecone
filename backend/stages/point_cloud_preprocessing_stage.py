@@ -1,10 +1,17 @@
 import os
+import sys
 import open3d as o3d
 import numpy as np
 import time
 import logging
 from utils.file_operations import modify_filename, setup_logging
 from sklearn.ensemble import IsolationForest
+# Add the backend directory to sys.path
+backend_dir = os.path.dirname(os.path.abspath(__file__))
+if backend_dir not in sys.path:
+    sys.path.insert(0, backend_dir)
+    
+from utils.point_cloud_utils import get_height, slice_point_cloud, fit_circle_to_points 
 
 # Map of the order of functions for this stage with the value being the name of the function to be called
 # Parameters can be updated here which will be passed into the function
@@ -12,6 +19,7 @@ preprocessing_operations = {
     0: {'function': 'ground_segmentation', 'params': {}},
     1: {'function': 'remove_outliers_isolation_forest', 'params': {'num_iterations': 12}},
     2: {'function': 'keep_only_largest_cluster', 'params': {}},
+    3: {'function': 'reduce_branches', 'params': {}},
 }
 
 def preprocessing_stage(filepath, current_step, stage_prefix, log_path):
@@ -178,3 +186,51 @@ def keep_only_largest_cluster(point_cloud, eps=0.05, min_points=10):
         logging.error(f"Failed DBSCAN: {e}")
         return point_cloud, False
     
+def reduce_branches(point_cloud):
+    """
+    Description:
+    Reduces the branches along the tree taper by performing incremental slices and using cylinder fitting
+    to determine outliers based on radius from xo and yo. 
+
+    Parameters:
+    point_cloud (open3d.geometry.PointCloud): The input point cloud representing a tree taper.
+
+    Returns:
+    point_cloud (open3d.geometry.PointCloud): The point cloud with adjusted outliers to be inliers
+    Bool: Always returns True to indicate the function has completed successfully.
+    """
+    num_points = np.asarray(point_cloud.points).shape[0]
+    point_cloud.colors = o3d.utility.Vector3dVector(np.tile([0.5, 0.5, 0.5], (num_points, 1)))
+    base_height, highest_point, _ = get_height(point_cloud)
+    increment_height = 0.5
+
+    for current_height in np.arange(base_height, highest_point, increment_height):
+        sliced_point_cloud, _ = slice_point_cloud(point_cloud, current_height, current_height + increment_height)
+        projected_points = np.asarray(sliced_point_cloud.points)[:, :2]
+        
+        if len(projected_points) > 0:
+            xo, yo, radius = fit_circle_to_points(projected_points)
+            distances = np.sqrt((projected_points[:, 0] - xo) ** 2 + (projected_points[:, 1] - yo) ** 2)
+            # find points that are farther than 1.25* the readius to identify outliers, while keeping the trees cone shape in tact
+            target_radius = 1.25 * radius
+            far_points_indices = np.where(distances > target_radius)[0]
+
+            # Adjust outlier points to be where they should be with respect to xo and yo
+            for idx in far_points_indices:
+                direction = np.array([projected_points[idx, 0] - xo, projected_points[idx, 1] - yo])
+                norm_direction = direction / np.linalg.norm(direction)
+                new_position = np.array([xo, yo]) + norm_direction * radius
+                # Update the point's position
+                projected_points[idx, 0] = new_position[0]
+                projected_points[idx, 1] = new_position[1]
+
+            # Update the z values to the original ones
+            updated_points = np.hstack((projected_points, np.asarray(sliced_point_cloud.points)[:, 2:]))
+
+            original_points = np.asarray(point_cloud.points)
+            mask = (original_points[:, 2] >= current_height) & (original_points[:, 2] <= current_height + increment_height)
+            original_points[mask] = updated_points
+
+            point_cloud.points = o3d.utility.Vector3dVector(original_points)
+            
+    return point_cloud, True
