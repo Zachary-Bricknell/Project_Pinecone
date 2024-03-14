@@ -6,6 +6,7 @@ import time
 import logging
 from utils.file_operations import setup_logging, write_to_file
 from sklearn.ensemble import IsolationForest
+from sklearn.ensemble import RandomForestRegressor
 
 backend_dir = os.path.dirname(os.path.abspath(__file__))
 if backend_dir not in sys.path:
@@ -18,8 +19,9 @@ from utils.point_cloud_utils import get_height, slice_point_cloud, fit_circle_to
 preprocessing_operations = {
     0: {'function': 'ground_segmentation', 'params': {}},
     1: {'function': 'remove_outliers_isolation_forest', 'params': {'num_iterations': 12}},
-    2: {'function': 'keep_only_largest_cluster', 'params': {}},
-    3: {'function': 'reduce_branches', 'params': {}},
+    2: {'function': 'random_forest_step', 'params': {'num_iterations': 7}},
+    3: {'function': 'keep_only_largest_cluster', 'params': {}},
+    4: {'function': 'reduce_branches', 'params': {}},
 }
 
 def preprocessing_stage(filepath, log_path):
@@ -173,6 +175,54 @@ def keep_only_largest_cluster(point_cloud, eps=0.05, min_points=10):
     except Exception as e:
         logging.error(f"Failed DBSCAN: {e}")
         return point_cloud, False
+    
+    
+def remove_outliers_random_forest(filepath, stage_prefix, num_iterations, rf_kwargs=None):
+    """
+    Iteratively apply Random Forest for outlier removal.
+    """
+    logging.info("Iterative Random Forest Stage Initiated")
+    success_flag = True
+
+    for iteration in range(num_iterations):
+        logging.info(f"Iteration {iteration + 1}: Removing outliers using Random Forest.")
+        try:
+            filepath, success_flag = random_forest_step(filepath, stage_prefix, **rf_kwargs)
+            if not success_flag:
+                logging.error("Failed to complete an iteration...")
+                break
+        except Exception as e:
+            logging.error(f"Failed in iteration {iteration + 1} of Random Forest: {e}")
+            break
+
+    logging.info("Iterative Random Forest Stage Completed")
+    return filepath, success_flag
+
+
+def random_forest_step(point_cloud, num_iterations=7, **kwargs):
+    """
+    Attempt to remove tree noise using Random Forest.
+    """
+    logging.info("Attempting to remove tree noise using Random Forest...")
+    success_flag = True
+    
+    try:
+        for iteration in range(num_iterations):
+            xyz = np.asarray(point_cloud.points)
+            model = RandomForestRegressor(**kwargs)
+            model.fit(xyz[:, :2], xyz[:, 2])  # Assuming x and y are used as features
+            z_predicted = model.predict(xyz[:, :2])
+            residual = np.abs(xyz[:, 2] - z_predicted)
+            inliers_mask = residual < np.percentile(residual, 95)  # Adjust the percentile as needed
+            point_cloud = point_cloud.select_by_index(np.where(inliers_mask)[0])
+            logging.info(f"Tree noise removed using Random Forest. Iteration {iteration + 1}")
+        
+        return point_cloud, success_flag
+
+    except Exception as e:
+        logging.error(f"Failed to remove tree noise using Random Forest: {e}")
+        return point_cloud, False
+
     
 def reduce_branches(point_cloud):
     """
