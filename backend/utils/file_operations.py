@@ -32,7 +32,6 @@ def read_point_cloud(path):
         logging.error(f"Error reading and converting the point cloud: {e}")
         return None
 
-import os
 
 def modify_filename(filepath, prefix):
     """    
@@ -46,24 +45,39 @@ def modify_filename(filepath, prefix):
     prefix (str): The new prefix to add or update in the filename.
 
     Returns:
-    str: The modified file path with the updated or appended prefix and step.
+    new_filepath (str): The modified file path with the updated or appended prefix and step.
     """
-    directory, filename = os.path.split(filepath)
-    name, ext = os.path.splitext(filename)
-
-    # Remove any existing stage prefix from the filename
-    for stage_name, existing_prefix in STAGE_PREFIXES:
-        # Check and remove existing_prefix if present
-        if filename.endswith(existing_prefix + ext):
-            name = name[:-len(existing_prefix)]
-            break
-
+    
+    directory, name, ext = get_base_filename(filepath)
     new_filename = f"{name}{prefix}{ext}"
     new_filepath = os.path.join(directory, new_filename)
 
     if os.path.exists(filepath):
         os.rename(filepath, new_filepath)
     return new_filepath
+
+def get_base_filename(filepath):
+    """
+    Description:
+    Extracts the filename, extension and directory from the given filepath, removing any suffixes
+    
+    Parameters:
+    filepath(str): Path to the file to split up
+    
+    Returns:
+    directory (str): the directory that the file belongs to
+    name (str): Base name of the file
+    ext (str): The extension of the file
+    """
+    directory, filename = os.path.split(filepath)
+    name, ext = os.path.splitext(filename)
+
+    for stage_name, existing_prefix in STAGE_PREFIXES:
+        if name.endswith(existing_prefix):
+            name = name[:-len(existing_prefix)]
+            break
+
+    return directory, name, ext
 
 def write_to_file(point_cloud, filepath, prefix):
     """    
@@ -84,21 +98,29 @@ def write_to_file(point_cloud, filepath, prefix):
     return new_filepath
 
 def setup_logging(log_name, log_path):
-    """     
-    Description:
-    Set up logging configuration to save log messages to a file. uses python logging library to append
-    to log file once setup.
-    
+    """
+    Set up logging configuration to save log messages to a file, creating a new logger for each file processed.
+
     Parameters:
-    log_name (str): Name of the log file without the ".log" extension.
+    filepath (str): The file path of the point cloud, used to generate log file name.
     log_path (str): Directory path where log file will be saved.
     """
-    log_directory = log_path + "/logs"
+    logger = logging.getLogger(log_name)
+    logger.setLevel(logging.INFO)
+
+    log_directory = os.path.join(log_path, "logs")
     os.makedirs(log_directory, exist_ok=True)
     log_file = os.path.join(log_directory, log_name + ".log")
-    logging.basicConfig(filename=log_file, 
-                        level=logging.INFO, 
-                        format='%(asctime)s - %(levelname)s - %(message)s')
+
+    # Check if the logger already has handlers to prevent duplicate logs
+    if not logger.handlers:
+        file_handler = logging.FileHandler(log_file)
+        formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+        file_handler.setFormatter(formatter)
+        logger.addHandler(file_handler)
+    
+    return logger
+
 
 def find_processed_file(input_filename, search_directory):
     """

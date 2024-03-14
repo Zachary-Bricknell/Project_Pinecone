@@ -1,5 +1,6 @@
+from turtle import setup
 from backend.stages.point_cloud_processing_stage import processing_stage
-from utils.file_operations import modify_filename, setup_logging
+from utils.file_operations import modify_filename, setup_logging, get_base_filename
 from utils.point_cloud_utils import get_current_stage
 from stages.point_cloud_cleaning_stage import cleaning_stage
 from stages.point_cloud_preprocessing_stage import preprocessing_stage
@@ -24,7 +25,8 @@ def extract_tree_taper(filepath, log_path):
     processing functions for each stage in sequence. If a stage completes successfully, the file is prepared for the next stage.
     Processing halts if a stage fails to complete or an error occurs. Updates the filename on success to denote preprocessiong completion. 
     """
-    setup_logging("extract_tree_taper", log_path)
+    _, base_filename, _ = get_base_filename(filepath)
+    setup_logging(base_filename, log_path)
     stages_map = {
         'cleaning': cleaning_stage,
         'preprocessing': preprocessing_stage,
@@ -32,11 +34,12 @@ def extract_tree_taper(filepath, log_path):
 
     initial_stage = get_current_stage(filepath)
     logging.info(f"Initial processing stage: {initial_stage}")
-    
     if initial_stage == STAGE_PREFIXES[-1][0]:
         return filepath
 
     for stage_name, _ in STAGE_PREFIXES:
+        if stage_name == "processing":
+            continue
         if stage_name in stages_map:
             logging.info(f"Checking stage: {stage_name}")
 

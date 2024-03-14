@@ -29,7 +29,6 @@ def cleaning_stage(filepath, log_path):
     tuple: A tuple containing the filepath of the cleaned point cloud (str) and a flag (bool) 
     indicating whether the stage completed successfully.
     """
-    setup_logging("cleaning_stage", log_path)
     point_cloud = o3d.io.read_point_cloud(filepath)
     logging.info("Executing Cleaning Stage...")
     current_step = 0 

@@ -59,6 +59,8 @@ def browse_file():
         
         for entry in dbh_height_group + main_taper_group:
             entry.delete(0, tk.END)
+        for field in tree_information_fields:
+            entries[field].delete(0, tk.END)
 
 @wait_while_processing
 def process_file():
@@ -95,20 +97,39 @@ def resource_path(relative_path):
 
     return os.path.join(base_path, relative_path)
 
-def update_entries(cookie_data):
+def update_entries(csv_data):
     """
-    Description:
-    Takes a list of dictionaires depicting the height ('height' key) and diameter ('diameter' value) of 
-    each cookie.
-    
+    Takes the standardized CSV data in list format and updates the GUI entries.
+
     Parameters:
-    Data(List): A list of dictionaries
+    csv_data (list): The data from the CSV file as a list.
     """
-    for i, entry in enumerate(dbh_height_group + main_taper_group):
-        height = cookie_data[i]['height']
-        diameter = cookie_data[i]['diameter']
-        entry.delete(0, tk.END) # Clears any previous entries
-        entry.insert(0, "H: {:.2f} D: {:.2f}".format(height, diameter))
+    for i, field in enumerate(tree_information_fields):
+        entries[field].delete(0, tk.END)
+        if i == 0:
+            # First entry is a string
+            entries[field].insert(0, csv_data[i])
+        elif i == 3:
+            # Fourth entry for volume with "Cubic Meters" suffix
+            entries[field].insert(0, "{:.2f} Cubic Meters".format(csv_data[i]))
+        else:
+            entries[field].insert(0, "{:.2f} M".format(csv_data[i]))
+
+    measurement_start_index = 4
+    measurement_pairs = (len(csv_data) - measurement_start_index) // 2
+
+    all_measurement_entries = dbh_height_group + main_taper_group
+    measurement_pairs = min(measurement_pairs, len(all_measurement_entries))
+
+    for i in range(measurement_pairs):
+        height_index = measurement_start_index + i * 2
+        diameter_index = height_index + 1
+
+        # Update each entry with "H: height D: diameter" format
+        if height_index < len(csv_data) and diameter_index < len(csv_data):
+            entry_text = "H: {:.2f} M  D: {:.2f} M".format(csv_data[height_index], csv_data[diameter_index])
+            all_measurement_entries[i].delete(0, tk.END)
+            all_measurement_entries[i].insert(0, entry_text)
 
 def update_status(message):
     status_label.config(text=message)

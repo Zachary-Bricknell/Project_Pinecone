@@ -36,7 +36,6 @@ def preprocessing_stage(filepath, log_path):
     new_filepath (str): The file path of the final processed point cloud.
     bool: True if the preprocessing is successful, False otherwise.
     """
-    setup_logging("preprocessing_stage", log_path)
     logging.info("Preprocessing Stage Initiated")
     point_cloud = o3d.io.read_point_cloud(filepath)
 
