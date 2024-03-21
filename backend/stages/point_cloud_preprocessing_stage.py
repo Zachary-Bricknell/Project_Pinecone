@@ -6,28 +6,100 @@ import time
 import logging
 from utils.file_operations import setup_logging, write_to_file
 from sklearn.ensemble import IsolationForest
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.neighbors import NearestNeighbors
 
 backend_dir = os.path.dirname(os.path.abspath(__file__))
 if backend_dir not in sys.path:
     sys.path.insert(0, backend_dir)
-    
-from utils.point_cloud_utils import get_height, slice_point_cloud, fit_circle_to_points 
 
-# Map of the order of functions for this stage with the value being the name of the function to be called
-# Parameters can be updated here which will be passed into the function
-preprocessing_operations = {
-    0: {'function': 'ground_segmentation', 'params': {}},
-    1: {'function': 'remove_outliers_isolation_forest', 'params': {'num_iterations': 12}},
-    2: {'function': 'keep_only_largest_cluster', 'params': {}},
-    3: {'function': 'reduce_branches', 'params': {}},
-}
+from utils.point_cloud_utils import get_height, slice_point_cloud, fit_circle_to_points
+
+
+def determine_preprocessing_operations(num_points):
+    """
+    Determine preprocessing operations based on the total number of points.
+    """
+    if num_points < 100000:
+        print(num_points)
+        preprocessing_operations = {
+            0: {"function": "ground_segmentation", "params": {}},
+            1: {"function": "keep_only_largest_cluster", "params": {}},
+            2: {"function": "remove_outliers_isolation_forest","params": {"num_iterations": 3}, },
+            3: {"function": "reduce_branches", "params": {}},
+        }
+
+        return preprocessing_operations
+
+    elif num_points >= 100000 and num_points <= 200000:
+        print(num_points)
+        preprocessing_operations = {
+            0: {"function": "ground_segmentation", "params": {}},
+            1: {
+                "function": "remove_outliers_isolation_forest",
+                "params": {"num_iterations": 8},
+            },
+            # 2: {'function': 'random_forest_step', 'params': {'num_iterations': 4}},
+            2: {"function": "reduce_branches", "params": {}},
+            # 2: {"function": "random_forest_step", "params": {"num_iterations": 3}},
+            3: {"function": "keep_only_largest_cluster", "params": {}},
+        }
+
+        return preprocessing_operations
+
+    elif num_points >= 100000 and num_points <= 300000:
+        print(num_points)
+        preprocessing_operations = {
+            0: {"function": "ground_segmentation", "params": {}},
+            1: {
+                "function": "remove_outliers_isolation_forest",
+                "params": {"num_iterations": 4},
+            },
+            # 2: {'function': 'random_forest_step', 'params': {'num_iterations': 4}},
+            2: {"function": "random_forest_step", "params": {"num_iterations": 3}},
+            3: {"function": "reduce_branches", "params": {}},
+            4: {"function": "keep_only_largest_cluster", "params": {}},
+        }
+
+        return preprocessing_operations
+
+    elif num_points <= 400000:
+        print(num_points)
+        preprocessing_operations = {
+            0: {"function": "ground_segmentation", "params": {}},
+            1: {
+                "function": "remove_outliers_isolation_forest",
+                "params": {"num_iterations": 12},
+            },
+            2: {"function": "random_forest_step", "params": {"num_iterations": 4}},
+            3: {"function": "keep_only_largest_cluster", "params": {}},
+            4: {"function": "reduce_branches", "params": {}},
+        }
+
+        return preprocessing_operations
+
+    elif num_points >= 400000:
+        print(num_points)
+        preprocessing_operations = {
+            0: {"function": "ground_segmentation", "params": {}},
+            1: {"function": "keep_only_largest_cluster", "params": {}},
+            2: {
+                "function": "remove_outliers_isolation_forest",
+                "params": {"num_iterations": 5},
+            },
+            3: {"function": "random_forest_step", "params": {"num_iterations": 1}},
+            # 3: {'function': 'reduce_branches', 'params': {}},
+        }
+
+        return preprocessing_operations
+
 
 def preprocessing_stage(filepath, log_path):
-    """        
+    """
     Description:
-    This driver function preprocesses a point cloud by using various pre-defined, and custom functions to 
-    reduce what we define as "noise" to produce as close to a tree taper as we can. 
-    
+    This driver function preprocesses a point cloud by using various pre-defined, and custom functions to
+    reduce what we define as "noise" to produce as close to a tree taper as we can.
+
     Parameters:
     filepath (str): The file path of the input point cloud.
     log_path (str): The path to store log files.
@@ -39,34 +111,41 @@ def preprocessing_stage(filepath, log_path):
     logging.info("Preprocessing Stage Initiated")
     point_cloud = o3d.io.read_point_cloud(filepath)
 
-    for current_step, operation_info in preprocessing_operations.items():
-        operation_function = globals()[operation_info['function']]
-        operation_params = operation_info['params']
+    number_of_points = len(np.asarray(point_cloud.points))
+
+    operations = determine_preprocessing_operations(num_points=number_of_points)
+
+    for current_step, operation_info in operations.items():
+        operation_function = globals()[operation_info["function"]]
+        operation_params = operation_info["params"]
 
         try:
             # Execute the preprocessing function with parameters unpacked
             if operation_params:
-                point_cloud, success_flag = operation_function(point_cloud, **operation_params)
+                point_cloud, success_flag = operation_function(
+                    point_cloud, **operation_params
+                )
             else:
                 point_cloud, success_flag = operation_function(point_cloud)
-                
+
             if not success_flag:
                 logging.error(f"Error in {operation_info['function']}, exiting...")
                 return None
-                
+
         except Exception as e:
             logging.error(f"Error in {operation_info['function']}: {e}")
             return None
 
     # After completing all steps, update the filename to reflect preprocessing completion and write the updated point cloud
-    new_filepath = write_to_file(point_cloud, filepath,"_pp")
+    new_filepath = write_to_file(point_cloud, filepath, "_pp")
     logging.info("Preprocessing Stage Completed successfully.")
     return new_filepath, True
+
 
 def ground_segmentation(point_cloud):
     """
     Description:
-    Loads a point cloud isolates the ground plane by slicing the point cloud vertically and finding the largest plane, vertically. 
+    Loads a point cloud isolates the ground plane by slicing the point cloud vertically and finding the largest plane, vertically.
 
     Parameters:
     point_cloud (open3d.geometry.PointCloud): The point cloud to process.
@@ -81,16 +160,19 @@ def ground_segmentation(point_cloud):
         max_z = np.max(z_values)
 
         for height_threshold in np.linspace(min_z, max_z, num=100):
-            mask = z_values >= height_threshold  
-            if np.any(~mask): 
-                point_cloud.points = o3d.utility.Vector3dVector(np.asarray(point_cloud.points)[mask])
+            mask = z_values >= height_threshold
+            if np.any(~mask):
+                point_cloud.points = o3d.utility.Vector3dVector(
+                    np.asarray(point_cloud.points)[mask]
+                )
                 z_values = z_values[mask]
                 break
         return point_cloud, True
-    
+
     except Exception as e:
         logging.error(f"Failed to isolate ground points: {e}")
         return point_cloud, False
+
 
 def isolation_forest_step(point_cloud, contamination=0.12):
     """
@@ -119,8 +201,10 @@ def isolation_forest_step(point_cloud, contamination=0.12):
         logging.error(f"Failed step of Isolation Forest: {e}")
         return point_cloud, False
 
-    
-def remove_outliers_isolation_forest(point_cloud, num_iterations=12, contamination=0.12):
+
+def remove_outliers_isolation_forest(
+    point_cloud, num_iterations=12, contamination=0.12
+):
     """
     Description:
     Refines the point cloud by repeatedly removing outliers with the Isolation Forest algorithm.
@@ -138,15 +222,18 @@ def remove_outliers_isolation_forest(point_cloud, num_iterations=12, contaminati
     success_flag = True
     for iteration in range(num_iterations):
         try:
-            point_cloud, success_flag = isolation_forest_step(point_cloud, contamination)
+            point_cloud, success_flag = isolation_forest_step(
+                point_cloud, contamination
+            )
             if not success_flag:
-                break 
-            
+                break
+
         except Exception as e:
             logging.error(f"Failed Isolation Forest: {e}")
-            break 
+            break
     logging.info("Iterative Isolation Forest Stage Completed")
     return point_cloud, success_flag
+
 
 def keep_only_largest_cluster(point_cloud, eps=0.05, min_points=10):
     """
@@ -164,7 +251,11 @@ def keep_only_largest_cluster(point_cloud, eps=0.05, min_points=10):
     """
     logging.info("Attempting DBSCAN...")
     try:
-        labels = np.array(point_cloud.cluster_dbscan(eps=eps, min_points=min_points, print_progress=False))
+        labels = np.array(
+            point_cloud.cluster_dbscan(
+                eps=eps, min_points=min_points, print_progress=False
+            )
+        )
         largest_cluster_idx = np.argmax(np.bincount(labels[labels >= 0]))
         largest_cluster_indices = np.where(labels == largest_cluster_idx)[0]
         point_cloud = point_cloud.select_by_index(largest_cluster_indices)
@@ -173,12 +264,71 @@ def keep_only_largest_cluster(point_cloud, eps=0.05, min_points=10):
     except Exception as e:
         logging.error(f"Failed DBSCAN: {e}")
         return point_cloud, False
-    
+
+
+def remove_outliers_random_forest(
+    filepath, stage_prefix, num_iterations, rf_kwargs=None
+):
+    """
+    Iteratively apply Random Forest for outlier removal.
+    """
+    logging.info("Iterative Random Forest Stage Initiated")
+    success_flag = True
+
+    for iteration in range(num_iterations):
+        logging.info(
+            f"Iteration {iteration + 1}: Removing outliers using Random Forest."
+        )
+        try:
+            filepath, success_flag = random_forest_step(
+                filepath, stage_prefix, **rf_kwargs
+            )
+            if not success_flag:
+                logging.error("Failed to complete an iteration...")
+                break
+        except Exception as e:
+            logging.error(f"Failed in iteration {iteration + 1} of Random Forest: {e}")
+            break
+
+    logging.info("Iterative Random Forest Stage Completed")
+    return filepath, success_flag
+
+
+def random_forest_step(point_cloud, num_iterations, **kwargs):
+    """
+    Attempt to remove tree noise using Random Forest.
+    """
+    logging.info("Attempting to remove tree noise using Random Forest...")
+    success_flag = True
+
+    try:
+        for iteration in range(num_iterations):
+            xyz = np.asarray(point_cloud.points)
+            model = RandomForestRegressor(**kwargs)
+            model.fit(xyz[:, :2], xyz[:, 2])  # Assuming x and y are used as features
+            z_predicted = model.predict(xyz[:, :2])
+            residual = np.abs(xyz[:, 2] - z_predicted)
+            inliers_mask = residual < np.percentile(
+                residual, 95
+            )  # Adjust the percentile as needed
+            point_cloud = point_cloud.select_by_index(np.where(inliers_mask)[0])
+            logging.info(
+                f"Tree noise removed using Random Forest. Iteration {iteration + 1}"
+            )
+
+        return point_cloud, success_flag
+
+    except Exception as e:
+        logging.error(f"Failed to remove tree noise using Random Forest: {e}")
+        return point_cloud, False
+
+
+
 def reduce_branches(point_cloud):
     """
     Description:
     Reduces the branches along the tree taper by performing incremental slices and using cylinder fitting
-    to determine outliers based on radius from xo and yo. 
+    to determine outliers based on radius from xo and yo.
 
     Parameters:
     point_cloud (open3d.geometry.PointCloud): The input point cloud representing a tree taper.
@@ -188,24 +338,32 @@ def reduce_branches(point_cloud):
     Bool: Always returns True to indicate the function has completed successfully.
     """
     num_points = np.asarray(point_cloud.points).shape[0]
-    point_cloud.colors = o3d.utility.Vector3dVector(np.tile([0.5, 0.5, 0.5], (num_points, 1)))
+    point_cloud.colors = o3d.utility.Vector3dVector(
+        np.tile([0.5, 0.5, 0.5], (num_points, 1))
+    )
     base_height, highest_point, _ = get_height(point_cloud)
     increment_height = 0.5
 
     for current_height in np.arange(base_height, highest_point, increment_height):
-        sliced_point_cloud, _ = slice_point_cloud(point_cloud, current_height, current_height + increment_height)
+        sliced_point_cloud, _ = slice_point_cloud(
+            point_cloud, current_height, current_height + increment_height
+        )
         projected_points = np.asarray(sliced_point_cloud.points)[:, :2]
-        
+
         if len(projected_points) > 0:
             xo, yo, radius = fit_circle_to_points(projected_points)
-            distances = np.sqrt((projected_points[:, 0] - xo) ** 2 + (projected_points[:, 1] - yo) ** 2)
+            distances = np.sqrt(
+                (projected_points[:, 0] - xo) ** 2 + (projected_points[:, 1] - yo) ** 2
+            )
             # find points that are farther than 1.25* the readius to identify outliers, while keeping the trees cone shape in tact
             target_radius = 1.25 * radius
             far_points_indices = np.where(distances > target_radius)[0]
 
             # Adjust outlier points to be where they should be with respect to xo and yo
             for idx in far_points_indices:
-                direction = np.array([projected_points[idx, 0] - xo, projected_points[idx, 1] - yo])
+                direction = np.array(
+                    [projected_points[idx, 0] - xo, projected_points[idx, 1] - yo]
+                )
                 norm_direction = direction / np.linalg.norm(direction)
                 new_position = np.array([xo, yo]) + norm_direction * radius
                 # Update the point's position
@@ -213,12 +371,16 @@ def reduce_branches(point_cloud):
                 projected_points[idx, 1] = new_position[1]
 
             # Update the z values to the original ones
-            updated_points = np.hstack((projected_points, np.asarray(sliced_point_cloud.points)[:, 2:]))
+            updated_points = np.hstack(
+                (projected_points, np.asarray(sliced_point_cloud.points)[:, 2:])
+            )
 
             original_points = np.asarray(point_cloud.points)
-            mask = (original_points[:, 2] >= current_height) & (original_points[:, 2] <= current_height + increment_height)
+            mask = (original_points[:, 2] >= current_height) & (
+                original_points[:, 2] <= current_height + increment_height
+            )
             original_points[mask] = updated_points
 
             point_cloud.points = o3d.utility.Vector3dVector(original_points)
-            
+
     return point_cloud, True
