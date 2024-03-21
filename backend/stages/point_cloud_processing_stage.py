@@ -68,9 +68,13 @@ def processing_stage(filepath, log_path):
         height1, diameter1 = measurements[i - 1]
         height2, diameter2 = measurements[i]
         h = height2 - height1
+       
         r1 = diameter1 / 2
+       
         r2 = diameter2 / 2
+
         volume = (1/3) * math.pi * h * (r1**2 + r1*r2 + r2**2)
+        round(volume,2)
         total_volume += volume
         
     tree_info['taper volume'] = total_volume
@@ -101,4 +105,4 @@ def processing_stage(filepath, log_path):
         writer.writerow(headers)  
         writer.writerow(row_data)
         
-    return row_data
+    return csv_filename
