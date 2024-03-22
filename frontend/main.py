@@ -161,26 +161,65 @@ class MainWindow(QMainWindow):
 
     def apply_button_styles(self):
         style = """
-            QPushButton {
-                background-color: #4CAF50;
-                border: none;
-                color: white;
-                padding: 15px 32px;
-                text-align: center;
-                text-decoration: none;
-                font-size: 16px;
-                margin: 4px 2px;
-            }
+           QPushButton {
+    background-color: #4CAF50;
+    border: none;
+    color: white;
+    padding: 10px 20px;
+    text-align: center;
+    text-decoration: none;
+    font-size: 16px;
+    border-radius: 5px;
+}
 
-            QPushButton:hover {
-                background-color: #45a049;
-                color: white;
-            }
+QPushButton:hover {
+    background-color: #45a049;
+}
 
-            QPushButton:disabled {
-                background-color: #cccccc;
-                color: #666666;
-            }
+QPushButton:disabled {
+    background-color: #cccccc;
+    color: #666666;
+}
+
+QLabel {
+    font-size: 16px;
+}
+
+QGroupBox {
+    border: 2px solid #4CAF50;
+    border-radius: 5px;
+    margin-top: 10px;
+}
+
+QGroupBox:title {
+    subcontrol-origin: margin;
+    subcontrol-position: top center;
+    padding: 0 5px;
+}
+
+QLineEdit {
+    background-color: #f0f0f0;
+    border: 1px solid #ccc;
+    padding: 5px;
+    border-radius: 5px;
+}
+
+QListWidget {
+    background-color: #ffffff;
+    border: 1px solid #ccc;
+    padding: 5px;
+    border-radius: 5px;
+}
+
+QListWidget::item:selected {
+    background-color: #d9edf7;
+    color: black;
+}
+
+QListWidget::item:selected:!active {
+    color: #333333;
+}
+
         """
         self.setStyleSheet(style)
 
