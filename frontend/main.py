@@ -361,7 +361,7 @@ class TreeInfoWindow(QMainWindow):
             )
             label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
             label.setFont(
-                QFont("Roboto", 12)
+                QFont("Roboto", 11)
             )  # Set a modern-looking font and increase font size
             entry = QLineEdit(tree_information_group)
             entry.setText(
@@ -369,7 +369,9 @@ class TreeInfoWindow(QMainWindow):
             )  # Use the header field to get the value
             entry.setReadOnly(True)
             entry.setStyleSheet(
-                "QLineEdit { background-color: #f0f0f0; border: 1px solid #ccc; padding: 2px; border-radius: 4px; }"
+                "QLineEdit { background-color: #f0f0f0; border: 1px solid #4CAF50; padding: 2px; border-radius: 4px; }"
+                "QGroupBox { border: 2px solid #4CAF50; border-radius: 5px; margin-top: 10px;}"
+                
             )
             tree_information_layout.addWidget(label, i, 0)
             tree_information_layout.addWidget(entry, i, 1)
