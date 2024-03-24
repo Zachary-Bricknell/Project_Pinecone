@@ -1,4 +1,4 @@
-from turtle import setup
+#from turtle import setup
 from backend.stages.point_cloud_processing_stage import processing_stage
 from utils.file_operations import modify_filename, setup_logging, get_base_filename
 from utils.point_cloud_utils import get_current_stage
