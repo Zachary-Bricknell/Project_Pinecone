@@ -1,4 +1,4 @@
-from tkinter.tix import Tree
+#from tkinter.tix import Tree
 import open3d as o3d
 import logging
 from utils.point_cloud_utils import calculate_diameter_at_height, get_height
