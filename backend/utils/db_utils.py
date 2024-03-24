@@ -4,9 +4,17 @@ import numpy as np
 from datetime import datetime
 import logging
 from utils.config import DB_CRED  # Import the database credentials
+from utils.file_operations import setup_logging
+import os
 
 
 def get_db_connection():
+    """
+    Establishes a connection to the PostgreSQL database using credentials from the DB_CRED configuration.
+
+    Returns:
+    A psycopg2 connection object to the database.
+    """
     try:
         # Use the credentials from DB_CRED dictionary
         conn_str = f"dbname='{DB_CRED['dbname']}' user='{DB_CRED['user']}' host='{DB_CRED['host']}' password='{DB_CRED['password']}' port='{DB_CRED['port']}'"
@@ -26,7 +34,17 @@ def import_to_db(xyz_file_path, table_name, geometry_col_name, additional_data={
     - geometry_col_name: Name of the column to store the MULTIPOINTZ geometry.
     - additional_data: Dictionary containing any additional column-value pairs to be inserted.
     """
-    print("import to db called")
+    base_log_filename = os.path.splitext(os.path.basename(xyz_file_path))[0]
+    log_directory = os.path.join(os.path.dirname(xyz_file_path), "logs")
+
+    # Ensure the log directory exists
+    if not os.path.exists(log_directory):
+        os.makedirs(log_directory)
+
+
+    setup_logging(base_log_filename,log_directory)
+
+    logging.info("Starting import_to_db function")
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -61,6 +79,7 @@ def import_to_db(xyz_file_path, table_name, geometry_col_name, additional_data={
 
 def delete_tree(tree_name):
     """
+    created by chatgpt
     Deletes a tree record by its name.
 
     Parameters:
@@ -93,8 +112,11 @@ def delete_tree(tree_name):
 
 def upload_tree_and_raw_scan(xyz_file_path, tree_name):
     """
-    Checks for the existence of a tree and uploads the scan to raw_lidar,
-    creating a new tree if necessary.
+    Uploads a raw scan of a tree to the database and creates or updates the tree record.
+
+    Parameters:
+    - xyz_file_path (str): The file path of the raw scan (XYZ file).
+    - tree_name (str): The name of the tree associated with the raw scan.
     """
     try:
         conn = get_db_connection()
@@ -142,7 +164,7 @@ def download_scan_by_tree_name(tree_name, scan_type, output_file_path):
             table_name = "raw_lidar"
         elif scan_type == "cleaned":
             table_column = "cleaned_scan"
-            table_name = "cleaned_tree"
+            table_name = "cleaned_tree" 
         elif scan_type == "preprocessed":
             table_column = "preprocessed_scan"
             table_name = "preprocessed_tree"
@@ -183,10 +205,10 @@ def download_scan_by_tree_name(tree_name, scan_type, output_file_path):
         cursor.close()
         conn.close()
 
-
 def fetch_tree_names():
     """Fetch a list of tree names or identifiers from the database."""
     try:
+# created by chatgpt
         conn = get_db_connection()
         cursor = conn.cursor()
 
@@ -213,6 +235,9 @@ def link_scan_to_tree(tree_name, scan_id, scan_type):
     - tree_name (str): The name of the tree.
     - scan_id (int): The ID of the scan in the respective table (cleaned_tree or preprocessed_tree).
     - scan_type (str): The type of the scan ('cleaned_tree_id' or 'preprocessed_tree_id').
+   
+    Returns:
+    The ID of the tree record in the 'trees' table that was linked to the scan.
     """
     try:
         conn = get_db_connection()
@@ -239,3 +264,86 @@ def link_scan_to_tree(tree_name, scan_id, scan_type):
         conn.close()
 
     return tree_id
+
+def upload_preprocessed_tree_data(tree_name, volume, height, dbh, filepath):
+    """
+    Updates or creates a preprocessed_tree record with specified data, linking it to a tree record.
+
+    Parameters:
+    - tree_name (str): The name of the tree.
+    - volume (float): The volume of the tree calculated from the preprocessed scan.
+    - height (float): The height of the tree calculated from the preprocessed scan.
+    - dbh (float): The diameter at breast height calculated from the preprocessed scan.
+    - filepath (str): The file path of the preprocessed scan.
+
+    Returns:
+    The ID of the preprocessed_tree record that was updated or created.
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    # Attempt to find the tree in the trees table
+    cursor.execute("SELECT id FROM trees WHERE name = %s;", (tree_name,))
+    tree_result = cursor.fetchone()
+
+    if tree_result:
+        tree_id = tree_result[0]
+    else:
+        # If tree does not exist, insert it and get the id
+        cursor.execute("INSERT INTO trees (name) VALUES (%s) RETURNING id;", (tree_name,))
+        tree_id = cursor.fetchone()[0]
+        conn.commit()
+
+    cursor.execute("SELECT preprocessed_tree_id FROM trees WHERE id = %s;", (tree_id,))
+    preprocessing_tree_id_result = cursor.fetchone()
+    if preprocessing_tree_id_result and preprocessing_tree_id_result[0]:
+        preprocessing_tree_id = preprocessing_tree_id_result[0]
+        # Update the existing preprocessed_tree record with new values
+        cursor.execute(
+            "UPDATE preprocessed_tree SET height = %s, dbh = %s, volume = %s WHERE id = %s;",
+            (height, dbh, volume, preprocessing_tree_id))
+    else:
+        # Insert into preprocessed_tree if it doesn't exist
+        cursor.execute(
+            "INSERT INTO preprocessed_tree (preprocessing_scan, height, dbh, volume, created) VALUES (%s, %s, %s, %s, %s) RETURNING id;",
+            (filepath, height, dbh, volume, datetime.now()))
+        preprocessing_tree_id = cursor.fetchone()[0]
+        # Link the new preprocessed_tree record with the tree
+        cursor.execute(
+            "UPDATE trees SET preprocessed_tree_id = %s WHERE id = %s;",
+            (preprocessing_tree_id, tree_id))
+        conn.commit()
+
+    conn.commit()
+    cursor.close()
+    conn.close()
+    return preprocessing_tree_id
+
+def upload_cookie_data(tree_name, measurements):
+    """
+    Inserts multiple 'cookie' records into the database, each representing a cross-section measurement of a tree.
+
+    Parameters:
+    - tree_name (str): The name of the tree to which these cookie measurements belong.
+    - measurements (list of tuples): Each tuple contains two floats, representing the height and diameter of a tree at a specific point.
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+     # First, find the tree_id using the tree_name
+    cursor.execute("SELECT id FROM trees WHERE name = %s;", (tree_name,))
+    result = cursor.fetchone()
+    if result:
+        tree_id = result[0]
+        for measurement in measurements:
+            height, diameter = measurement
+            cursor.execute(
+                "INSERT INTO cookie (tree_id, diameter, height) VALUES (%s, %s, %s);",
+                (tree_id, diameter, height))
+        conn.commit()
+    else:
+        logging.error(f"No tree found with the name '{tree_name}', unable to upload cookie data.")
+
+    conn.commit()
+    cursor.close()
+    conn.close()
