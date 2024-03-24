@@ -12,13 +12,16 @@ from utils.point_cloud_utils import point_cloud_visualizer
 from utils.file_operations import find_processed_file
 from point_cloud_processor import extract_tree_taper
 from stages.point_cloud_processing_stage import processing_stage
+from utils.db_utils import upload_tree_and_raw_scan  
 
-def process(original_path, destination_directory):
+
+def process(original_path, destination_directory, upload_flag):
     """
     Description:
     This function will process a raw point cloud of a specified tree, resulting in a tree taper of that tree
     and performing calculations at pre-defined heights, standardized by the Ministry of Natural Resources and Forestry.
     The processed point cloud is saved in the destination directory. 
+    If the upload_flag is True, the processed data along with any derived metrics are uploaded to a designated storage or database as implemented within the function.
     
     Parameters:
     original_path (str): The path to the point cloud that is to be processed
@@ -26,7 +29,8 @@ def process(original_path, destination_directory):
     
     Return:
     point_cloud_metrics(List): A list of dictionaries containing the metrics derived from the tree taper
-    processed_point_cloud (str): The filepath of the processed point cloud 
+    processed_point_cloud (str): The filepath of the processed point cloud
+    upload_flag (bool): A flag indicating whether to upload the processed data. If True, the processed point cloud and associated metrics are uploaded according to predefined logic in the function. This may involve interacting with databases or cloud storage to store the processed information.
     """
     if not os.path.exists(destination_directory):
         os.makedirs(destination_directory)
@@ -42,8 +46,8 @@ def process(original_path, destination_directory):
         #A existing file is in the destination, so update to reference that one, effectively skipping steps that have been done. 
         destination_path = existing_file
 
-    processed_point_cloud = extract_tree_taper(destination_path, destination_directory)
-    point_cloud_metrics = processing_stage(processed_point_cloud, destination_directory)
+    processed_point_cloud = extract_tree_taper(destination_path, destination_directory, upload_flag)
+    point_cloud_metrics = processing_stage(processed_point_cloud, destination_directory, upload_flag)
     return point_cloud_metrics, processed_point_cloud
 
 # Function to visualize the point cloud
@@ -60,7 +64,7 @@ def visualize_point_cloud(path_to_visualize, original_path = None):
     point_cloud_visualizer(path_to_visualize, original_path)
 
 # Function to process and then visualize the point cloud
-def process_and_visualize(original_path, destination_directory):
+def process_and_visualize(original_path, destination_directory, upload_flag):
     """
     Description:
     Processes a point cloud by calling process() and than visualizes both the original and the processed point cloud
@@ -69,9 +73,10 @@ def process_and_visualize(original_path, destination_directory):
     Parameters:
     original_path (str): The path to the point cloud to be processed
     destination_directory (str): The path to the destination directory to save the processed point cloud
+    upload_flag (bool): A flag indicating whether the processed point cloud should be uploaded. If True, the processed data is uploaded according to the implementation within the 'process' function. 
     """
     starting_point_cloud = original_path
-    point_cloud_metrics, processed_file_path = process(original_path, destination_directory)
+    point_cloud_metrics, processed_file_path = process(original_path, destination_directory, upload_flag)
     visualize_point_cloud(processed_file_path, starting_point_cloud)
     return point_cloud_metrics
 
@@ -86,16 +91,23 @@ def main():
     parser.add_argument("--destination", help="Destination directory for processed files", default=None)
     parser.add_argument("--process", action="store_true", help="Process the point cloud")
     parser.add_argument("--visualize", action="store_true", help="Visualize the point cloud")
+    parser.add_argument("--upload", action="store_true", help="Upload the point cloud to the database")  # Added upload argument
     args = parser.parse_args()
 
     destination_directory = args.destination if args.destination else os.path.join(os.path.dirname(args.path), "pinecone")
 
+    # Handling the upload flag
+    if args.upload:
+        tree_name = os.path.splitext(os.path.basename(args.path))[0]
+        file_to_upload = args.path
+        upload_tree_and_raw_scan(file_to_upload, tree_name)
+
     if args.process and not args.visualize:
-        process(args.path, destination_directory)
+        process(args.path, destination_directory,args.upload)
     elif args.visualize and not args.process:
         visualize_point_cloud(args.path)
     elif args.process and args.visualize:
-        process_and_visualize(args.path, destination_directory)
+        process_and_visualize(args.path, destination_directory,args.upload)
 
 if __name__ == "__main__":
     main()

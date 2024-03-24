@@ -1,226 +1,413 @@
-import tkinter as tk
-from tkinter import filedialog, LabelFrame
-import subprocess
-import os
 import sys
-import threading
+from PyQt5.QtWidgets import (
+    
+    QApplication,
+    QMainWindow,
+    QWidget,
+    QVBoxLayout,
+    QPushButton,
+    QLabel,
+    QFileDialog,
+    QListWidget,
+    QListWidgetItem,
+    QGroupBox,
+    QGridLayout,
+    QLineEdit,
+)
 
+from PyQt5.QtCore import Qt, QSize, QThread, pyqtSignal
+from PyQt5.QtGui import QFont, QPalette, QColor
+import os
+import csv
+
+
+# Add the root directory to sys.path if not already included
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
+# Now you can import your modules from the root directory
 from backend.main import process, visualize_point_cloud, process_and_visualize
+from backend.utils.file_operations import get_base_filename
+# from backend.utils.db_utils 
 
-def disable_all_buttons():
-    """
-    Disable all buttons
-    """
-    browse_button["state"] = "disabled"
-    process_button["state"] = "disabled"
-    visualize_button["state"] = "disabled"
-    process_and_visualize_button["state"] = "disabled"
 
-def enable_all_buttons():
-    """
-    enables all buttons
-    """
-    browse_button["state"] = "normal"
-    process_button["state"] = "normal"
-    visualize_button["state"] = "normal"
-    process_and_visualize_button["state"] = "normal"
+class WorkerThread(QThread):
+    finished = pyqtSignal(str)
+    update_status = pyqtSignal(str)
 
-def wait_while_processing(target_function):
-    """
-    Decorator function to allow multithreading of the backend processing. Diables all buttons while
-    a chile process is running, and re-enables it when the child process is done. Updates the status lable to
-    ensure clarity of current process.
-    """
-    def threading_wrapper():
-        def run():
-            root.after(0, update_status, "Processing...")
+    def __init__(self, function, args):
+        super().__init__()
+        self.function = function
+        self.args = args
+        self.stopped = False  # Flag to indicate if the thread is stopped
+
+    def run(self):
+        self.update_status.emit(
+            '<html><head><style>*{font-size: 20px;}</style></head><body><p style="color: blue;">Processing...</p></body></html>'
+        )
+        try:
+            csv_file_path = self.function(
+                *self.args
+            )  # This should return the path to the CSV file as a string
+            if not self.stopped:  # Check if the thread is not stopped
+                self.finished.emit(csv_file_path)  # Emit the string path
+        except Exception as e:
+            if not self.stopped:
+                self.update_status.emit(f"Error: {str(e)}")
+        finally:
+            if not self.stopped:
+                self.update_status.emit("Ready")
+                # If processing failed and no path is returned, emit an empty string
+                self.finished.emit("")
+
+    def stop_thread(self):  # Method to stop the thread
+        self.stopped = True
+
+
+class MainWindow(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        self.file_path = None  # Initialize file_path attribute
+        self.file_queue = []
+        self.current_thread = None  # Track the current thread
+
+        self.setWindowTitle("Pinecone Project")
+        self.setFixedSize(QSize(650, 700))
+
+        central_widget = QWidget(self)
+        self.setCentralWidget(central_widget)
+        main_layout = QVBoxLayout(central_widget)
+
+        file_box = QGroupBox("Files")
+        file_layout = QVBoxLayout(file_box)
+
+        self.file_path_label = QLabel("Drag and drop files here or click Browse", self)
+        self.file_path_label.setAlignment(Qt.AlignCenter)
+        file_layout.addWidget(self.file_path_label)
+
+        self.file_list = QListWidget(self)
+        self.file_list.itemDoubleClicked.connect(
+            self.execute_item
+        )  # Connect double-click event
+        self.file_list.setDragEnabled(True)  # Enable drag and drop
+        self.file_list.setDragDropMode(QListWidget.DragDrop)
+        self.file_list.setSelectionMode(
+            QListWidget.SingleSelection
+        )  # Single item selection
+        file_layout.addWidget(self.file_list)
+
+        main_layout.addWidget(file_box)
+
+        self.status_label = QLabel("Ready", self)
+        self.status_label.setAlignment(Qt.AlignCenter)
+        main_layout.addWidget(self.status_label)
+
+        self.browse_button = QPushButton("Browse", self)
+        self.browse_button.clicked.connect(self.browse_file)
+        main_layout.addWidget(self.browse_button)
+
+        self.setup_drag_and_drop()
+
+        self.process_button = QPushButton("Process File", self)
+        self.process_button.clicked.connect(self.process_file)
+        self.process_button.setEnabled(False)
+        main_layout.addWidget(self.process_button)
+
+        self.visualize_button = QPushButton("Visualize File", self)
+        self.visualize_button.clicked.connect(self.visualize_file)
+        self.visualize_button.setEnabled(False)
+        main_layout.addWidget(self.visualize_button)
+
+        self.process_and_visualize_button = QPushButton(
+            "Process and Visualize File", self
+        )
+        self.process_and_visualize_button.clicked.connect(
+            self.process_and_visualize_file
+        )
+        self.process_and_visualize_button.setEnabled(False)
+        main_layout.addWidget(self.process_and_visualize_button)
+
+# process and upload button
+        self.process_and_upload_button = QPushButton("Process and Upload File", self)
+        self.process_and_upload_button.clicked.connect(self.process_and_upload_file)
+        self.process_and_upload_button.setEnabled(False)
+        main_layout.addWidget(self.process_and_upload_button)
+
+        self.apply_button_styles()
+
+        self.stop_button = QPushButton(
+            "Stop Processing", self
+        )  # Change stop button text
+        self.stop_button.clicked.connect(
+            self.stop_processing
+        )  # Connect stop button event
+        main_layout.addWidget(self.stop_button)
+
+    def process_done(self, csv_file_path):
+        if csv_file_path:
             try:
-                target_function()
-            finally:
-                root.after(0, update_status, "Ready")
-                root.after(0, enable_all_buttons)
+                tree_info = {}
+                with open(csv_file_path, "r") as csvfile:
+                    reader = csv.DictReader(csvfile)
+                    tree_info = next(reader)
+            except Exception as e:
+                self.update_status(f"Error reading CSV: {e}")
+                return
 
-        disable_all_buttons()
-        threading.Thread(target=run).start()
-    return threading_wrapper
-
-def browse_file():
-    file_path = filedialog.askopenfilename(filetypes=[("XYZ Files", "*.xyz")])
-    if file_path:
-        file_path_label.config(text=f"File Path: {file_path}")
-        process_button["state"] = "normal"
-        visualize_button["state"] = "normal"
-        process_and_visualize_button["state"] = "normal"
-        
-        for entry in dbh_height_group + main_taper_group:
-            entry.delete(0, tk.END)
-        for field in tree_information_fields:
-            entries[field].delete(0, tk.END)
-
-@wait_while_processing
-def process_file():
-    file_path = file_path_label.cget("text").split("File Path: ")[1]
-    destination_directory = os.path.join(os.path.dirname(file_path), "pinecone")
-
-    if not os.path.exists(destination_directory):
-        os.makedirs(destination_directory)
-
-    processed_file, _ = process(file_path, destination_directory)
-    update_entries(processed_file)
- 
-@wait_while_processing
-def visualize_file():
-    file_path = file_path_label.cget("text").split("File Path: ")[1]
-    visualize_point_cloud(file_path)
- 
-@wait_while_processing
-def process_and_visualize_file():
-    file_path = file_path_label.cget("text").split("File Path: ")[1]
-    destination_directory = os.path.join(os.path.dirname(file_path), "pinecone")
-    processed_file = process_and_visualize(file_path, destination_directory)
-    update_entries(processed_file)
-
-def resource_path(relative_path):
-    """
-    Helper Function for Pyinstaller to find the "resources" folder when packaged
-    """
-    try:
-        # PyInstaller creates a temp folder and stores path in _MEIPASS
-        base_path = sys._MEIPASS
-    except Exception:
-        base_path = os.path.abspath(".")
-
-    return os.path.join(base_path, relative_path)
-
-def update_entries(csv_data):
-    """
-    Takes the standardized CSV data in list format and updates the GUI entries.
-
-    Parameters:
-    csv_data (list): The data from the CSV file as a list.
-    """
-    for i, field in enumerate(tree_information_fields):
-        entries[field].delete(0, tk.END)
-        if i == 0:
-            # First entry is a string
-            entries[field].insert(0, csv_data[i])
-        elif i == 3:
-            # Fourth entry for volume with "Cubic Meters" suffix
-            entries[field].insert(0, "{:.2f} Cubic Meters".format(csv_data[i]))
+            if tree_info:
+                self.status_label.setText("Processing done")
+                self.tree_info_window = TreeInfoWindow(tree_info)
+                self.tree_info_window.show()
+            else:
+                self.status_label.setText("Error: No data found in CSV.")
         else:
-            entries[field].insert(0, "{:.2f} M".format(csv_data[i]))
+             self.status_label.setText("Displaying Tree Information")
 
-    measurement_start_index = 4
-    measurement_pairs = (len(csv_data) - measurement_start_index) // 2
+        self.process_next_file()
 
-    all_measurement_entries = dbh_height_group + main_taper_group
-    measurement_pairs = min(measurement_pairs, len(all_measurement_entries))
+    def apply_button_styles(self):
+        style = """
+           QPushButton {
+    background-color: #4CAF50;
+    border: none;
+    color: white;
+    padding: 10px 20px;
+    text-align: center;
+    text-decoration: none;
+    font-size: 16px;
+    border-radius: 5px;
+}
 
-    for i in range(measurement_pairs):
-        height_index = measurement_start_index + i * 2
-        diameter_index = height_index + 1
+QPushButton:hover {
+    background-color: #45a049;
+}
 
-        # Update each entry with "H: height D: diameter" format
-        if height_index < len(csv_data) and diameter_index < len(csv_data):
-            entry_text = "H: {:.2f} M  D: {:.2f} M".format(csv_data[height_index], csv_data[diameter_index])
-            all_measurement_entries[i].delete(0, tk.END)
-            all_measurement_entries[i].insert(0, entry_text)
+QPushButton:disabled {
+    background-color: #cccccc;
+    color: #666666;
+}
 
-def update_status(message):
-    status_label.config(text=message)
+QLabel {
+    font-size: 16px;
+}
+
+QGroupBox {
+    border: 2px solid #4CAF50;
+    border-radius: 5px;
+    margin-top: 10px;
+}
+
+QGroupBox:title {
+    subcontrol-origin: margin;
+    subcontrol-position: top center;
+    padding: 0 5px;
+}
+
+QLineEdit {
+    background-color: #f0f0f0;
+    border: 1px solid #ccc;
+    padding: 5px;
+    border-radius: 5px;
+}
+
+QListWidget {
+    background-color: #ffffff;
+    border: 1px solid #ccc;
+    padding: 5px;
+    border-radius: 5px;
+}
+
+QListWidget::item:selected {
+    background-color: #d9edf7;
+    color: black;
+}
+
+QListWidget::item:selected:!active {
+    color: #333333;
+}
+
+        """
+        self.setStyleSheet(style)
+
+    def setup_drag_and_drop(self):
+        self.setAcceptDrops(True)
+
+    def dragEnterEvent(self, event):
+        if event.mimeData().hasUrls():
+            event.accept()
+        else:
+            event.ignore()
+
+    def dropEvent(self, event):
+        for url in event.mimeData().urls():
+            file_path = url.toLocalFile()
+            self.file_list.addItem(file_path)
+            self.file_queue.append(file_path)
+            self.process_button.setEnabled(True)
+            self.visualize_button.setEnabled(True)
+            self.process_and_visualize_button.setEnabled(True)
+
+    def browse_file(self):
+        file_path, _ = QFileDialog.getOpenFileName(
+            self, "Open XYZ File", "", "XYZ Files (*.xyz)"
+        )
+        if file_path:
+            self.file_path = file_path
+            self.file_list.addItem(file_path)
+            self.file_queue.append(file_path)
+            self.process_button.setEnabled(True)
+            self.visualize_button.setEnabled(True)
+            self.process_and_visualize_button.setEnabled(True)
+            self.process_and_upload_button.setEnabled(True)
+
+    def start_thread(self, function, args):
+        self.current_thread = WorkerThread(function, args)  # Assign the current thread
+        self.current_thread.finished.connect(self.process_done)
+        self.current_thread.update_status.connect(self.update_status)
+        self.disable_buttons()
+        self.current_thread.finished.connect(
+            self.enable_buttons
+        )  # Enable buttons after processing
+        self.current_thread.start()
+
+    def execute_item(self, item):  # New method for double-click execution
+        file_path = item.text()
+        self.file_queue.append(file_path)
+        destination_directory = os.path.join(os.path.dirname(file_path), "pinecone")
+        if not os.path.exists(destination_directory):
+            os.makedirs(destination_directory)
+        self.start_thread(process, (file_path, destination_directory))
+
+    def process_file(self):
+        if self.file_queue:
+            file_path = self.file_queue.pop(0)
+            destination_directory = os.path.join(os.path.dirname(file_path), "pinecone")
+            if not os.path.exists(destination_directory):
+                os.makedirs(destination_directory)
+            self.start_thread(process, (file_path, destination_directory))
+
+    def visualize_file(self):
+        if self.file_queue:
+            file_path = self.file_queue.pop(0)
+            self.start_thread(visualize_point_cloud, (file_path,))
+
+    def process_and_visualize_file(self):
+        if self.file_queue:
+            file_path = self.file_queue.pop(0)
+            destination_directory = os.path.join(os.path.dirname(file_path), "pinecone")
+            self.start_thread(process_and_visualize, (file_path, destination_directory),upload=False)
+
+    def process_and_upload_file(self):
+        file_path = self.file_queue.pop(0)
+        destination_directory = os.path.join(os.path.dirname(file_path), "pinecone")
+        self.start_thread(process, (file_path,destination_directory,True))
+
+    def stop_processing(self):  # Method to stop the processing
+        if self.current_thread and self.current_thread.isRunning():
+            self.current_thread.stop_thread()
+            self.update_status("Processing stopped")
+            self.current_thread = None  # Reset the current thread
+        self.enable_buttons()  # Enable buttons after stopping processing
+
+    def disable_buttons(self):
+        self.browse_button.setEnabled(False)
+        self.process_button.setEnabled(False)
+        self.visualize_button.setEnabled(False)
+        self.process_and_visualize_button.setEnabled(False)
+        self.process_and_upload_button.setEnabled(False)
+        self.stop_button.setEnabled(True)  # Enable the stop button
+
+    def enable_buttons(self):
+        self.browse_button.setEnabled(True)
+        self.process_button.setEnabled(True)
+        self.visualize_button.setEnabled(True)
+        self.process_and_visualize_button.setEnabled(True)
+        self.process_and_upload_button.setEnabled(True)
+        self.stop_button.setEnabled(False)  # Disable the stop button
+
+    def update_status(self, message):
+        self.status_label.setText(message)
+
+    def process_next_file(self):
+        if self.file_queue:
+            self.process_file()
+
+    def delete_file(self):
+        selected_item = self.file_list.currentItem()
+        if selected_item is not None:
+            selected_index = self.file_list.indexFromItem(selected_item).row()
+            if selected_index < len(self.file_queue):
+                del self.file_queue[selected_index]
+                self.file_list.takeItem(selected_index)
+
+
+from PyQt5.QtWidgets import (
+    QMainWindow,
+    QWidget,
+    QVBoxLayout,
+    QLabel,
+    QGroupBox,
+    QGridLayout,
+    QLineEdit,
+)
+from PyQt5.QtCore import Qt
+
+
+class TreeInfoWindow(QMainWindow):
+    def __init__(self, tree_info):
+        super().__init__()
+        self.setWindowTitle("Tree Information")
+        self.setGeometry(100, 100, 1000, 1000)
+
+        central_widget = QWidget(self)
+        self.setCentralWidget(central_widget)
+        layout = QVBoxLayout(central_widget)
+
+        tree_information_group = QGroupBox("Tree Information", self)
+        tree_information_layout = QGridLayout(tree_information_group)
+
+        # Define the fields to display based on the CSV headers
+        fields_to_display = list(tree_info.keys())
+
+        for i, field in enumerate(fields_to_display):
+            label = QLabel(
+                f"{field.replace('_', ' ').title()}:", tree_information_group
+            )
+            label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+            label.setFont(
+                QFont("Roboto", 11)
+            )  # Set a modern-looking font and increase font size
+            entry = QLineEdit(tree_information_group)
+            entry.setText(
+                str(tree_info[field])
+            )  # Use the header field to get the value
+            entry.setReadOnly(True)
+            entry.setStyleSheet(
+                "QLineEdit { background-color: #f0f0f0; border: 1px solid #4CAF50; padding: 2px; border-radius: 4px; }"
+                "QGroupBox { border: 2px solid #4CAF50; border-radius: 5px; margin-top: 10px;}"
+                
+            )
+            tree_information_layout.addWidget(label, i, 0)
+            tree_information_layout.addWidget(entry, i, 1)
+
+        layout.addWidget(tree_information_group)
+
+        self.set_background_style(layout)  # Apply custom background style
+
+    def set_background_style(self, layout):
+        # Customize background style for the window
+        pal = self.palette()
+        gradient_color = QColor("#f2f2f2")  # Light gray background color
+        pal.setColor(QPalette.Window, gradient_color)
+        self.setPalette(pal)
+        self.setAutoFillBackground(True)
+        layout.setContentsMargins(10, 10, 10, 10)  # Add margins to the layout
+
     
-## Tkinter window
 
-root = tk.Tk()
-root.title("Pinecone Project")
-
-window_width = 650
-window_height = 700
-root.geometry(f"{window_width}x{window_height}")
-
-screen_width = root.winfo_screenwidth()
-screen_height = root.winfo_screenheight()
-center_x = int((screen_width - window_width) / 2)
-center_y = int((screen_height - window_height) / 2)
-root.geometry(f"{window_width}x{window_height}+{center_x}+{center_y}")
-
-file_path_frame = tk.Frame(root)
-file_path_frame.pack(side="top", fill="x")
-
-status_label = tk.Label(file_path_frame, text="Ready", font=("Arial", 12))
-status_label.pack(side="top", fill="x", pady=10)
-
-file_path_label = tk.Label(file_path_frame, text="File Path:", font=("Arial", 12))
-file_path_label.pack(side="top", fill="x", pady=10)
-
-button_frame = tk.Frame(root)
-button_frame.pack(side="top", pady=20)
-
-browse_button = tk.Button(button_frame, text="Browse", command=browse_file, font=("Arial", 12))
-browse_button.pack(side="left", padx=10)
-
-process_button = tk.Button(button_frame, text="Process File", command=process_file, font=("Arial", 12), state="disabled")
-process_button.pack(side="left", padx=10)
-
-visualize_button = tk.Button(button_frame, text="Visualize File", command=visualize_file, font=("Arial", 12), state="disabled")
-visualize_button.pack(side="left", padx=10)
-
-process_and_visualize_button = tk.Button(button_frame, text="Process and Visualize File", command=process_and_visualize_file, font=("Arial", 12), state="disabled")
-process_and_visualize_button.pack(side="left", padx=10)
-
-# Group box for tree overview
-tree_information_group = tk.LabelFrame(root, text="Tree Information", padx=10, pady=10)
-tree_information_group.pack(side="top", fill="x", padx=20, pady=10)
-
-tree_information_fields = ["Tree Name", "Tree Height", "Increment", "Est Volume"]
-entries = {}
-for i, field in enumerate(tree_information_fields):
-    row = i // 2
-    col = i % 2
-    label = tk.Label(tree_information_group, text=f"{field}:", font=("Arial", 12))
-    label.grid(row=row, column=col*2, sticky="e", padx=(5, 2), pady=5)
-    entry = tk.Entry(tree_information_group, bg="lightgrey", font=("Arial", 12))
-    entry.grid(row=row, column=col*2+1, sticky="ew", padx=(2, 5), pady=5)
-    entries[field] = entry
-
-# Configure columns to have uniform weight
-tree_information_group.grid_columnconfigure((0, 1), weight=1)
-
-# First group box for DBH entries representing the 3 heights below dbh, and dbh
-dbh_group = LabelFrame(root, text="DBH", padx=10, pady=10)
-dbh_group.pack(side="top", fill="x", padx=20, pady=10)
-
-dbh_height_group = []
-for i in range(1, 5):
-    row = (i-1) // 2
-    col = (i-1) % 2
-    tk.Label(dbh_group, text=f"Cookie {i}:", font=("Arial", 12)).grid(row=row, column=col*2, sticky="e", padx=(5, 2), pady=5)
-    entry = tk.Entry(dbh_group, bg="lightgrey", font=("Arial", 12))
-    entry.grid(row=row, column=col*2+1, sticky="ew", padx=(2, 5), pady=5)
-    dbh_height_group.append(entry)
-
-# Configure columns to have uniform weight
-dbh_group.grid_columnconfigure((0, 1), weight=1)
-
-# Second group box for main taper to represent the 9 measurable cookies
-taper_group = LabelFrame(root, text="Main Taper", padx=10, pady=10)
-taper_group.pack(side="top", fill="x", padx=20, pady=10)
-
-main_taper_group = []
-for i in range(5, 14):
-    row = (i-1) // 2
-    col = (i-1) % 2
-    tk.Label(taper_group, text=f"Cookie {i}:", font=("Arial", 12)).grid(row=row, column=col*2, sticky="e", padx=(5, 2), pady=5)
-    entry = tk.Entry(taper_group, bg="lightgrey", font=("Arial", 12))
-    entry.grid(row=row, column=col*2+1, sticky="ew", padx=(2, 5), pady=5)
-    main_taper_group.append(entry)
-
-# Configure columns to have uniform weight
-taper_group.grid_columnconfigure((0, 1), weight=1)
-
-root.mainloop()
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
+    main_window = MainWindow()
+    main_window.show()
+    sys.exit(app.exec_())

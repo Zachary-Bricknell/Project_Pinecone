@@ -3,6 +3,7 @@ import open3d as o3d
 import logging
 from utils.point_cloud_utils import calculate_diameter_at_height, get_height
 from utils.file_operations import get_base_filename
+from utils.db_utils import upload_cookie_data, upload_preprocessed_tree_data
 import csv
 import math
 
@@ -12,7 +13,7 @@ import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from utils.file_operations import setup_logging
 
-def processing_stage(filepath, log_path):
+def processing_stage(filepath, log_path, upload_flag):
     """
     Description:
     Analyzes a tree point cloud to measure the Circumference, to obtain Diameter, at various heights by taking in a point cloud of a cleaned tree taper.
@@ -24,6 +25,7 @@ def processing_stage(filepath, log_path):
     Parameters:
     filepath (str): The file path of the point cloud.
     log_path (str): The path to store log files.
+    upload_flag (bool): Flag indicating whether to upload the processed data to the database.
     
     Returns:
     measurements(list of dictionaries): a list of dictionaries denoting height of the measurement ('height') 
@@ -89,6 +91,12 @@ def processing_stage(filepath, log_path):
     headers = ['tree_name', 'tree_height', 'increment', 'volume']
     for i in range(1, len(row_data) // 2): 
         headers.extend([f'height_{i}', f'diameter_{i}'])
+    
+    # Upload processing data if upload_flag is True
+    if upload_flag:
+        upload_preprocessed_tree_data(base_filename, volume=total_volume, height=total_height, dbh=DBH, filepath=filepath)
+        upload_cookie_data(base_filename, measurements)
+
     
     # Write a csv to a new (or existing) directory called /csv
     csv_directory = base_directory + "/csv"
